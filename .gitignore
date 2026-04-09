@@ -1,0 +1,7 @@
+.turbo
+node_modules
+dist
+out
+.DS_Store
+.env
+tmp/
