@@ -194,31 +194,7 @@ export const Register = () => {
                         </div>
                     </div>
 
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.2 }}
-                        className="mt-6 p-4 bg-yellow-900/30 border border-yellow-700/50 rounded-xl shadow-lg text-yellow-200 text-sm"
-                    >
-                        <p className="font-semibold mb-2">Important Note for Connection:</p>
-                        <p>
-                            Due to using a self-signed SSL certificate for this personal project, your browser will likely show a security warning when connecting to the WebSocket server.
-                        </p>
-                        <p className="mt-2 text-left">
-                            To bypass this, please follow these steps:
-                            <ol className="list-decimal list-inside mt-2">
-                                <li>Visit <a href="https://ec2-54-87-166-112.compute-1.amazonaws.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">https://ec2-54-87-166-112.compute-1.amazonaws.com</a> in a new tab.</li>
-                                <div className="m-2"></div>
-                                <li>Click "Advanced" (or similar, depending on your browser).</li>
-                                <div className="m-2"></div>
-
-                                <li>Click "Proceed to ec2-54-87-166-112.compute-1.amazonaws.com (unsafe)" to temporarily trust the certificate.</li>
-                                <div className="m-2"></div>
-
-                                <li>Return to this page and create/join a room.</li>
-                            </ol>
-                        </p>
-                    </motion.div>
+                    
                 </motion.div>
             </div>
         </div>

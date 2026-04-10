@@ -41,9 +41,21 @@ export default function Whiteboard({ roomId, username, socket }: WhiteboardProps
     const [authorColors, setAuthorColors] = useState<Record<string, string>>({});
     const [drawing, setDrawing] = useState(false);
     const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+    const [remoteCursors, setRemoteCursors] = useState<Record<string, { x: number, y: number, updated_at: number }>>({});
+    const lastCursorSend = useRef<number>(0);
+    const saveTimer = useRef<ReturnType<typeof setTimeout>>();
 
     const myColor = getUserColor(username);
     const themeColor = "#22d3ee"; 
+
+    function triggerAutoSave() {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = setTimeout(() => {
+            if (canvasRef.current) {
+                localStorage.setItem(`whiteboard_${roomId}`, canvasRef.current.toDataURL());
+            }
+        }, 1000);
+    }
 
     function drawStroke(ctx: CanvasRenderingContext2D, stroke: Stroke) {
         if (!stroke.points || stroke.points.length < 2) return;
@@ -99,9 +111,22 @@ export default function Whiteboard({ roomId, username, socket }: WhiteboardProps
         e.preventDefault();
         e.stopPropagation();
         if(e.clientX) setCursorPos({ x: e.clientX, y: e.clientY });
-        if (!isDrawing.current || !overlayRef.current) return;
         
-        currentPath.current.push(getPos(e, overlayRef.current));
+        if (overlayRef.current) {
+            const pos = getPos(e, overlayRef.current);
+            const now = Date.now();
+            // Throttled Network Request (Max 1 per 50ms)
+            if (now - lastCursorSend.current > 50) {
+               socket?.send(JSON.stringify({ type: "whiteboard_cursor", roomId, x: pos.x, y: pos.y, username }));
+               lastCursorSend.current = now;
+            }
+            
+            if (isDrawing.current) {
+                currentPath.current.push(pos);
+            }
+        }
+        
+        if (!isDrawing.current || !overlayRef.current) return;
         const overlay = overlayRef.current;
         const ctx = overlay.getContext("2d");
         if (ctx) {
@@ -134,6 +159,8 @@ export default function Whiteboard({ roomId, username, socket }: WhiteboardProps
             setAuthorColors((prev) => ({ ...prev, [username]: myColor }));
         }
 
+        triggerAutoSave();
+
         // Broadcast to WebSocket
         socket?.send(JSON.stringify({
             type: "whiteboard_stroke",
@@ -152,10 +179,16 @@ export default function Whiteboard({ roomId, username, socket }: WhiteboardProps
                     const ctx = canvasRef.current?.getContext("2d");
                     if (ctx && data.stroke) {
                         drawStroke(ctx, data.stroke);
+                        triggerAutoSave();
                         if (data.stroke.author) {
                             setAuthorColors((prev) => ({ ...prev, [data.stroke.author]: getUserColor(data.stroke.author) }));
                         }
                     }
+                } else if (data.type === "whiteboard_cursor") {
+                    setRemoteCursors(prev => ({
+                        ...prev,
+                        [data.username]: { x: data.x, y: data.y, updated_at: Date.now() }
+                    }));
                 } else if (data.type === "whiteboard_clear") {
                     const ctx = canvasRef.current?.getContext("2d");
                     if(ctx && canvasRef.current) {
@@ -172,10 +205,42 @@ export default function Whiteboard({ roomId, username, socket }: WhiteboardProps
         return () => socket.removeEventListener("message", handleMessage);
     }, [socket]);
 
+    useEffect(() => {
+        // Clean up stale cursors
+        const interval = setInterval(() => {
+            const now = Date.now();
+            setRemoteCursors(prev => {
+                const next = { ...prev };
+                let changed = false;
+                Object.keys(next).forEach(k => {
+                    if (now - next[k].updated_at > 3000) {
+                        delete next[k];
+                        changed = true;
+                    }
+                });
+                return changed ? next : prev;
+            });
+        }, 1500);
+
+        // Load saved state from local storage on mount
+        const savedData = localStorage.getItem(`whiteboard_${roomId}`);
+        if (savedData && canvasRef.current) {
+            const ctx = canvasRef.current.getContext("2d");
+            const img = new Image();
+            img.onload = () => {
+                ctx?.drawImage(img, 0, 0);
+            };
+            img.src = savedData;
+        }
+
+        return () => clearInterval(interval);
+    }, [roomId]);
+
     const clearBoard = () => {
         const ctx = canvasRef.current?.getContext("2d");
         if(ctx && canvasRef.current) {
             ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            localStorage.removeItem(`whiteboard_${roomId}`);
         }
         setAuthorColors({});
         
@@ -280,6 +345,32 @@ export default function Whiteboard({ roomId, username, socket }: WhiteboardProps
                         </span>
                     </div>
                 )}
+
+                {Object.entries(remoteCursors).map(([uname, pos]) => {
+                    const color = getUserColor(uname);
+                    return (
+                        <div
+                            key={uname}
+                            className="absolute pointer-events-none z-[998] flex items-center gap-1 transition-all duration-75"
+                            style={{ 
+                                left: `${(pos.x / 1600) * 100}%`, 
+                                top: `${(pos.y / 900) * 100}%` 
+                            }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill={color} stroke="white" strokeWidth="2" xmlns="http://www.w3.org/2000/svg" style={{ transform: "translate(-2px, -2px)" }}>
+                                <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+                            </svg>
+                            <span style={{ 
+                                background: color, color: "white", padding: "2px 6px", 
+                                borderRadius: "4px", fontSize: 10, fontWeight: 600, 
+                                whiteSpace: "nowrap", opacity: 0.9,
+                                transform: "translate(-4px, 12px)"
+                            }}>
+                                {uname}
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

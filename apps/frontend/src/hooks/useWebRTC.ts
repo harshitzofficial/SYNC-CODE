@@ -47,8 +47,12 @@ export const useWebRTC = (socket: WebSocket | null, userId: string, roomId: stri
                     currentStream = event.streams && event.streams[0] ? event.streams[0] : new MediaStream();
                 }
                 
-                // Add the new arriving track
+                // Add the new arriving track and clean up old zombie tracks of the same kind
                 if (!currentStream.getTracks().find(t => t.id === event.track.id)) {
+                    const oldMatch = currentStream.getTracks().find(t => t.kind === event.track.kind);
+                    if (oldMatch) {
+                        currentStream.removeTrack(oldMatch);
+                    }
                     currentStream.addTrack(event.track);
                 }
 
@@ -119,7 +123,12 @@ export const useWebRTC = (socket: WebSocket | null, userId: string, roomId: stri
                 const existingSender = senders.find(s => s.track && s.track.kind === track.kind);
                 if (existingSender) {
                     if (existingSender.track?.id !== track.id) {
-                        existingSender.replaceTrack(track).catch(e => console.error("Replace track fallback error", e));
+                        try {
+                            pc.removeTrack(existingSender);
+                            pc.addTrack(track, localStream);
+                        } catch(e) {
+                            console.error("Remove/Add track fallback error", e);
+                        }
                     }
                 } else {
                     try { pc.addTrack(track, localStream); } catch(e) {}
@@ -154,6 +163,8 @@ export const useWebRTC = (socket: WebSocket | null, userId: string, roomId: stri
             try {
                 const data = JSON.parse(event.data);
                 if (!data.type?.startsWith("webrtc_")) return;
+
+                if (!data.senderId) return;
 
                 let pc = peerConnections.current[data.senderId];
                 if (!pc) {
@@ -243,13 +254,6 @@ export const useWebRTC = (socket: WebSocket | null, userId: string, roomId: stri
                 // Force React to recognize the stream internally updated
                 setLocalStream(new MediaStream(localStream.getTracks()));
 
-                Object.values(peerConnections.current).forEach(pc => {
-                    if (pc.signalingState === "closed") return;
-                    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio' || s.track?.readyState === 'ended');
-                    if (sender) {
-                        sender.replaceTrack(newTrack).catch(e => console.error(e));
-                    }
-                });
                 setMicEnabled(true);
             } catch(e) { console.error(e); }
         }
@@ -275,17 +279,14 @@ export const useWebRTC = (socket: WebSocket | null, userId: string, roomId: stri
                 // Force React to recognize the stream internally updated
                 setLocalStream(new MediaStream(localStream.getTracks()));
 
-                Object.values(peerConnections.current).forEach(pc => {
-                    if (pc.signalingState === "closed") return;
-                    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video' || s.track?.readyState === 'ended');
-                    if (sender) {
-                        sender.replaceTrack(newTrack).catch(e => console.error(e));
-                    }
-                });
                 setVideoEnabled(true);
             } catch(e) { console.error(e); }
         }
     };
 
-    return { localStream, remoteStreams, toggleMic, toggleVideo, micEnabled, videoEnabled };
+    return { 
+        localStream, remoteStreams, 
+        toggleMic, toggleVideo, 
+        micEnabled, videoEnabled
+    };
 };

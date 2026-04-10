@@ -5,12 +5,16 @@ import { error } from "console";
 import requestRouter from "./routers/router";
 import dotenv from "dotenv";
 const { str10_36 } = require('hyperdyperid/lib/str10_36');
+const { setupWSConnection } = require('y-websocket/bin/utils');
 
 dotenv.config();
 
 const server = http.createServer();
 const wss = new WebSocketServer({ server });
 const pubSubClient = createClient({
+    url: process.env.REDIS_URL
+});
+const publisherClient = createClient({
     url: process.env.REDIS_URL
 });
 
@@ -27,7 +31,7 @@ async function start_process() {
         console.log("Redis PubSub Client Error", err);
     })
 
-    wss.on("connection", (ws, req) => {
+    wss.on("connection", async (ws, req) => {
         console.log("Connection Established");
 
         const queryParams = new URLSearchParams(req.url?.split("?")[1]);
@@ -36,13 +40,13 @@ async function start_process() {
         const userId = queryParams.get("id");
         const name = queryParams.get("name");
 
-        if (roomId == null || roomId == "" || !rooms[roomId]) {
-            roomId = generateRoomId();
+        if (!roomId || roomId === "" || !rooms[roomId]) {
+            if (!roomId) roomId = generateRoomId();
             rooms[roomId] = [];
 
             ws.send(
                 JSON.stringify({
-                isNewRoom: true,
+                    isNewRoom: true,
                     type: "roomId",
                     roomId,
                     message: `Created new room with ID : ${roomId}`
@@ -63,31 +67,56 @@ async function start_process() {
             )
         }
 
-        const users = rooms[roomId].map((user: any) => ({
-            id: user.userId,
-            name: user.name
-        }));
-
-        const updatedUser = [...users, { id: userId, name }]
-
-        rooms[roomId].forEach((user: any) => {
-            user.ws.send(JSON.stringify({ type: "users", users: updatedUser }));
-        });
-
         rooms[roomId].push({ userId, ws, name });
         console.log("all room", rooms);
 
-        pubSubClient.subscribe(roomId, (message) => {
-            rooms[roomId].forEach((user: any) => {
-                if (user.userId === userId) {
-                    user.ws.send(JSON.stringify({ type: "output", message }));
-                    console.log("Output sent to user id", user.id);
+        if (userId && name) {
+            await publisherClient.hSet(`room:${roomId}:users`, userId, name);
+        }
+
+        const allUsersRaw = await publisherClient.hGetAll(`room:${roomId}:users`);
+        const allUsers = Object.keys(allUsersRaw).map(id => ({ id, name: allUsersRaw[id] }));
+
+        await publisherClient.publish(roomId, JSON.stringify({
+            type: "broadcast",
+            excludeUserId: null,
+            data: { type: "users", users: allUsers }
+        }));
+
+        if (rooms[roomId].length === 1) {
+            pubSubClient.subscribe(roomId, (message) => {
+                try {
+                    const parsed = JSON.parse(message);
+                    if (parsed.type === "broadcast") {
+                        rooms[roomId]?.forEach((user: any) => {
+                            if (user.userId !== parsed.excludeUserId) {
+                                user.ws.send(JSON.stringify(parsed.data));
+                            }
+                        });
+                    } else if (parsed.type === "direct") {
+                        const targetUser = rooms[roomId]?.find((u: any) => u.userId === parsed.targetUserId);
+                        if (targetUser) targetUser.ws.send(JSON.stringify(parsed.data));
+                    } else {
+                        rooms[roomId]?.forEach((user: any) => {
+                            user.ws.send(JSON.stringify({ type: "output", message: message }));
+                        });
+                    }
+                } catch(e) {
+                    rooms[roomId]?.forEach((user: any) => {
+                        user.ws.send(JSON.stringify({ type: "output", message: message }));
+                    });
                 }
             });
-        });
+        }
 
         ws.on('message', (message) => {
-            const data = JSON.parse(message.toString());
+            let data;
+            try {
+                data = JSON.parse(message.toString());
+            } catch (error) {
+                console.error("Invalid JSON received:", message.toString());
+                return;
+            }
 
             console.log("Message received", data.type);
 
@@ -204,21 +233,29 @@ async function start_process() {
 
             const handler = requestRouter[data.type];
             if (handler) {
-                handler(data, { userId, roomId, rooms });
+                handler(data, { userId, roomId, rooms, publisherClient });
             } else {
                 console.warn(`Unknown message type: ${data.type}`);
             }
         });
 
-        ws.on("close", () => {
+        ws.on("close", async () => {
             rooms[roomId] = rooms[roomId].filter(
                 (user: any) => user.userId !== userId
             );
 
-            // send updated users list to all users in the room
-            rooms[roomId].forEach((user: any) => {
-                user.ws.send(JSON.stringify({ type: "users", users }));
-            });
+            if (userId) {
+                await publisherClient.hDel(`room:${roomId}:users`, userId);
+            }
+
+            const allUsersRaw = await publisherClient.hGetAll(`room:${roomId}:users`);
+            const allUsers = Object.keys(allUsersRaw).map(id => ({ id, name: allUsersRaw[id] }));
+
+            await publisherClient.publish(roomId, JSON.stringify({
+                type: "broadcast",
+                excludeUserId: null,
+                data: { type: "users", users: allUsers }
+            }));
 
             if (rooms[roomId].length === 0) {
                 delete rooms[roomId];
@@ -238,11 +275,19 @@ async function start_process() {
     server.listen(5000, '0.0.0.0', () => {
         console.log("web socket server started on 5000", server.address());
     });
+
+    const yjsServer = http.createServer();
+    const yjsWss = new WebSocketServer({ server: yjsServer });
+    yjsWss.on("connection", setupWSConnection);
+    yjsServer.listen(5001, '0.0.0.0', () => {
+        console.log("yjs WebSocket Server started on port 5001");
+    });
 }
 
 async function main() {
     try {
         await pubSubClient.connect();
+        await publisherClient.connect();
         await start_process();
         console.log("Redis Client connected");
     } catch (e) {

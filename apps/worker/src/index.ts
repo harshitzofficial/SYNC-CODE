@@ -39,7 +39,7 @@ async function processSubmission(submission: any) {
                 codeFilePath = path.join(codeDir, "userCode.js");
                 await fs.writeFile(codeFilePath, code);
 
-                executionCommand = `node "${codeFilePath}" "${inputFilePath}"`;
+                executionCommand = `docker run --rm --memory="100m" --cpus="0.5" --network none -v "${codeDir}:/usr/src/app" -w /usr/src/app node:18-alpine node userCode.js input.txt`;
                 break;
 
             case "python":
@@ -47,19 +47,19 @@ async function processSubmission(submission: any) {
 
                 await fs.writeFile(codeFilePath, code);
 
-                executionCommand = `python3 "${codeFilePath}" "${inputFilePath}"`;
+                executionCommand = `docker run --rm --memory="100m" --cpus="0.5" --network none -v "${codeDir}:/usr/src/app" -w /usr/src/app python:3.9-alpine python userCode.py input.txt`;
                 break;
 
             case "cpp":
                 codeFilePath = path.join(codeDir, "userCode.cpp");
                 await fs.writeFile(codeFilePath, code);
-                executionCommand = `g++ "${codeFilePath}" -o "${path.join(codeDir, "a.out")}" && "${path.join(codeDir, "a.out")}" < "${inputFilePath}"`;
+                executionCommand = `docker run --rm --memory="100m" --cpus="0.5" --network none -v "${codeDir}:/usr/src/app" -w /usr/src/app gcc:latest sh -c "g++ userCode.cpp -o a.out && ./a.out < input.txt"`;
                 break;
 
             case "go":
                 codeFilePath = path.join(codeDir, "userCode.go");
                 await fs.writeFile(codeFilePath, code);
-                executionCommand = `go run "${codeFilePath}" < "${inputFilePath}"`;
+                executionCommand = `docker run --rm --memory="100m" --cpus="0.5" --network none -v "${codeDir}:/usr/src/app" -w /usr/src/app golang:1.20-alpine sh -c "go run userCode.go < input.txt"`;
                 break;
 
             default: throw new Error("Unsupported language");
@@ -69,7 +69,7 @@ async function processSubmission(submission: any) {
         return;
     }
 
-    exec(executionCommand, async (error, stdout, stderr) => {
+    exec(executionCommand, { timeout: 10000 }, async (error, stdout, stderr) => {
         let result = stdout || stderr;
         if (error) {
             result = `Error: ${error.message}`;
@@ -92,23 +92,23 @@ async function processSubmission(submission: any) {
 }
 
 async function main() {
-    try {
-        await client.connect();
-        await pubClient.connect();
+    while (true) {
+        try {
+            if (!client.isOpen) await client.connect();
+            if (!pubClient.isOpen) await pubClient.connect();
 
-        console.log("Redis Client Connected");
+            console.log("Redis Client Connected");
 
-        while (true) {
-            const submission = await client.brPop("problems", 0);
-
-            console.log("Processing submission...");
-
-            if (submission) {
-                await processSubmission(submission.element);
+            while (true) {
+                const submission = await client.brPop("problems", 0);
+                if (submission) {
+                    await processSubmission(submission.element);
+                }
             }
+        } catch (error) {
+            console.error("Failed to connect or communicating with Redis. Retrying in 5s...", error);
+            await new Promise(resolve => setTimeout(resolve, 5000));
         }
-    } catch (error) {
-        console.error("Failed to connect to Redis", error);
     }
 }
 

@@ -1,5 +1,6 @@
-import { Send, ImagePlus, X } from "lucide-react";
+import { Send, ImagePlus, X, Bot } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 
 export interface ChatMessage {
     id: string;
@@ -8,6 +9,7 @@ export interface ChatMessage {
     senderName: string;
     timestamp: number;
     imageUrl?: string;
+    isAi?: boolean;
 }
 
 interface ChatWindowProps {
@@ -101,19 +103,24 @@ export const ChatWindow = ({ messages, localUserId, onSendMessage }: ChatWindowP
                 ) : (
                     messages.map((msg) => {
                         const isLocal = msg.senderId === localUserId;
+                        const isAi = msg.isAi || msg.senderId === "ai-assistant";
+                        const alignmentClass = isLocal ? "ml-auto items-end" : "mr-auto items-start";
                         return (
                             <div
                                 key={msg.id}
-                                className={`flex flex-col max-w-[85%] ${isLocal ? "ml-auto items-end" : "mr-auto items-start"}`}
+                                className={`flex flex-col max-w-[90%] ${alignmentClass}`}
                             >
-                                <span className="text-[10px] text-gray-400 mb-1 ml-1">
+                                <span className="text-[10px] text-gray-400 mb-1 ml-1 flex items-center gap-1">
+                                    {isAi && <Bot size={12} className="text-purple-400" />}
                                     {isLocal ? "You" : msg.senderName} • {formatTime(msg.timestamp)}
                                 </span>
                                 <div
                                     className={`px-3 py-2 rounded-xl text-sm break-words shadow-sm flex flex-col gap-2 ${
                                         isLocal
                                             ? "bg-blue-600 text-white rounded-br-none"
-                                            : "bg-gray-700 text-gray-100 rounded-bl-none border border-gray-600"
+                                            : isAi
+                                                ? "bg-purple-900/40 text-indigo-50 rounded-bl-none border border-purple-500/30"
+                                                : "bg-gray-700 text-gray-100 rounded-bl-none border border-gray-600"
                                     }`}
                                 >
                                     {msg.imageUrl && (
@@ -121,7 +128,37 @@ export const ChatWindow = ({ messages, localUserId, onSendMessage }: ChatWindowP
                                             <img src={msg.imageUrl} alt="attached" className="max-w-full h-auto rounded-md max-h-48 object-contain cursor-pointer" />
                                         </a>
                                     )}
-                                    {msg.text && <span>{msg.text}</span>}
+                                    {msg.text && (
+                                        isAi ? (
+                                            <ReactMarkdown 
+                                                components={{
+                                                    code({node, inline, className, children, ...props}: any) {
+                                                        const match = /language-(\w+)/.exec(className || '')
+                                                        return !inline && match ? (
+                                                           <pre className="bg-black/60 p-3 rounded-lg border border-purple-500/30 overflow-x-auto mt-2 mb-2 text-[11px] font-mono text-purple-200">
+                                                                <code className={className} {...props}>
+                                                                    {children}
+                                                                </code>
+                                                           </pre>
+                                                        ) : (
+                                                           <code className="bg-black/40 px-1 py-0.5 rounded text-purple-300 font-mono text-xs" {...props}>
+                                                                {children}
+                                                           </code>
+                                                        )
+                                                    },
+                                                    p({children}) { return <p className="mb-2 last:mb-0 leading-relaxed text-indigo-100/90">{children}</p> },
+                                                    a({children, href}) { return <a href={href} className="text-blue-400 hover:text-blue-300 hover:underline">{children}</a> },
+                                                    ul({children}) { return <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul> },
+                                                    ol({children}) { return <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol> },
+                                                    strong({children}) { return <strong className="font-semibold text-white">{children}</strong> }
+                                                }}
+                                            >
+                                                {msg.text}
+                                            </ReactMarkdown>
+                                        ) : (
+                                            <span>{msg.text}</span>
+                                        )
+                                    )}
                                 </div>
                             </div>
                         );

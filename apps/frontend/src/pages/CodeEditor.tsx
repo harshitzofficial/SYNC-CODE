@@ -1,4 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import * as Y from 'yjs';
+import { WebsocketProvider } from 'y-websocket';
+import { MonacoBinding } from 'y-monaco';
 import MonacoEditor from "@monaco-editor/react";
 import { registerMonacoSnippets } from "../utils/monacoSnippets";
 import { userAtom } from "../atoms/userAtom";
@@ -19,6 +22,7 @@ import { X } from "lucide-react";
 
 export const CodeEditor = () => {
     const [code, setCode] = useState<any>("// Write your code here...");
+    const editorRef = useRef<any>(null);
     const [language, setLanguage] = useState("javascript");
     const [output, setOutput] = useState<string[]>([]); // Output logs
     const [socket, setSocket] = useRecoilState<WebSocket | null>(socketAtom);
@@ -89,7 +93,7 @@ export const CodeEditor = () => {
                 }
 
                 if (data.type === "code") {
-                    setCode(data.code);
+                    // Do nothing, YJS handles code synchronization natively now
                 }
 
                 if (data.type === "output") {
@@ -136,6 +140,42 @@ export const CodeEditor = () => {
                     setIsLoading(data.isLoading);
                 }
 
+                if (data.type === "chat_ai_chunk") {
+                    setChatMessages((prev) => {
+                        const existingMsgIndex = prev.findIndex(m => m.id === data.messageId);
+                        if (existingMsgIndex >= 0) {
+                            const newMessages = [...prev];
+                            newMessages[existingMsgIndex] = {
+                                ...newMessages[existingMsgIndex],
+                                text: newMessages[existingMsgIndex].text + data.text
+                            };
+                            return newMessages;
+                        } else {
+                            return [...prev, {
+                                id: data.messageId,
+                                text: data.text,
+                                senderId: data.senderId,
+                                senderName: data.senderName,
+                                timestamp: data.timestamp,
+                                isAi: true
+                            }];
+                        }
+                    });
+                }
+
+                if (data.type === "chat_ai_error") {
+                     setChatMessages((prev) => [
+                        ...prev, {
+                            id: uuidv4(),
+                            text: `**Error**: ${data.error}`,
+                            senderId: "ai-assistant",
+                            senderName: "Gemini AI",
+                            timestamp: Date.now(),
+                            isAi: true
+                        }
+                     ]);
+                }
+
                 if (data.type === "chat_message") {
                     setChatMessages((prev) => [
                         ...prev,
@@ -163,7 +203,7 @@ export const CodeEditor = () => {
         handleButtonStatus("Submitting...", true);
 
         const submission = {
-            code,
+            code: editorRef.current ? editorRef.current.getValue() : code,
             language,
             roomId: user.roomId,
             input
@@ -171,8 +211,6 @@ export const CodeEditor = () => {
 
         console.log("submission here->")
         console.log(JSON.stringify(submission));
-
-        socket?.send(user?.id ? user.id : "");
 
         console.log(submission);
         console.log(`${import.meta.env.VITE_PRIMARY_BACKEND_URL}`)
@@ -266,38 +304,91 @@ export const CodeEditor = () => {
         }));
     };
 
-    // const handleEditorDidMount = (editor: any) => {
-    //     if(editor){
-    //         // editor.onDidChangeCursorPosition((e: any) => {
-    //         //     const cursorPosition = editor.getPosition();
-    //         //     socket?.send(
-    //         //         JSON.stringify({
-    //         //             type: "cursorPosition",
-    //         //             cursorPosition: cursorPosition,
-    //         //             user: user.id
-    //         //         })
-    //         //     )
-    //         // })
+    const handleAIAction = (ed: any, prompt: string) => {
+        const selection = ed.getSelection();
+        const selectedText = ed.getModel().getValueInRange(selection);
+        
+        if (!selectedText || selectedText.trim() === "") {
+            toast.error("Please highlight some code first to use AI");
+            return;
+        }
 
-    //         editor.onDidChangeModelContent((e: any) => {
-    //             setCode(editor.getValue());
-    //             socket?.send(
-    //                 JSON.stringify({
-    //                     type: "code",
-    //                     code: editor.getValue(),
-    //                     roomId: user.roomId
-    //                 })
-    //             )
-    //         })
+        const messageId = uuidv4();
+        
+        // Broadcast the initial intent message
+        const intentMsg = {
+            id: uuidv4(),
+            text: `*Asking AI:* ${prompt}`,
+            senderId: user.id || "",
+            senderName: user.name || "User",
+            timestamp: Date.now()
+        };
+        setChatMessages(prev => [...prev, intentMsg]);
+        socket?.send(JSON.stringify({ ...intentMsg, type: "chat_message", roomId: user.roomId }));
 
-    //         // editor.onDidChangeCursorSelection((e: any) => {
-    //         //     const selection = editor.getSelection();
-    //         //     const selectedText = editor.getModel()?.getValueInRange(selection);
-    //         //     console.log("Selected Code:", selectedText);
-    //         // })
-    //     }
+        // Send the AI command directly to the websocket backend
+        socket?.send(JSON.stringify({
+            type: "ask_ai",
+            messageId,
+            roomId: user.roomId,
+            prompt,
+            code: selectedText,
+            language
+        }));
+        
+        // Open the chat tab automatically
+        setActiveTab("chat");
+        toast.info("Gemini AI is analyzing your code...");
+    };
 
-    // }
+    const handleEditorDidMount = (editor: any, monaco: any) => {
+        editorRef.current = editor;
+
+        const doc = new Y.Doc();
+        // Connect to our specialized Yjs WebSocket server on port 5001
+        const provider = new WebsocketProvider(`ws://${window.location.hostname}:5001`, user.roomId, doc);
+        const type = doc.getText('monaco');
+
+        let debounceTimer: ReturnType<typeof setTimeout>;
+        type.observe(() => {
+            clearTimeout(debounceTimer);
+            // 1.5s Debounce for saving data
+            debounceTimer = setTimeout(() => {
+                localStorage.setItem(`synccode_${user.roomId}`, type.toString());
+                toast.success('Auto-saved locally', { description: 'Code backed up to browser storage' });
+            }, 1500);
+        });
+
+        const binding = new MonacoBinding(type, editorRef.current.getModel(), new Set([editorRef.current]), provider.awareness);
+
+        provider.awareness.setLocalStateField('user', {
+             name: user.name || 'Anonymous',
+             color: '#' + Math.floor(Math.random()*16777215).toString(16)
+        });
+
+        // AI Pair Programmer Monaco Actions
+        editor.addAction({
+            id: "ai-explain-code",
+            label: "🧠 AI: Explain this logic",
+            contextMenuGroupId: "navigation",
+            contextMenuOrder: 1,
+            run: (ed: any) => handleAIAction(ed, "Explain this logic step-by-step.")
+        });
+        editor.addAction({
+            id: "ai-find-bugs",
+            label: "🐛 AI: Find Bugs",
+            contextMenuGroupId: "navigation",
+            contextMenuOrder: 2,
+            run: (ed: any) => handleAIAction(ed, "Find bugs or security vulnerabilities in this code.")
+        });
+        editor.addAction({
+            id: "ai-optimize-code",
+            label: "⚡ AI: Optimize Code",
+            contextMenuGroupId: "navigation",
+            contextMenuOrder: 3,
+            run: (ed: any) => handleAIAction(ed, "Optimize this code for performance and readability.")
+        });
+    }
 
     return (
         <div className="w-full h-full min-h-screen  min-w-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white">
@@ -328,12 +419,11 @@ export const CodeEditor = () => {
                                         quickSuggestions: true,
                                         wordBasedSuggestions: "currentDocument"
                                     }}
-                                    value={code}
                                     beforeMount={handleEditorWillMount}
+                                    onMount={handleEditorDidMount}
                                     language={language}
                                     theme="vs-dark"
                                     height="100%"
-                                    onChange={(value) => handleCodeChange(value)}
                                 />
                                 </div>
                             ) : (
