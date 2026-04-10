@@ -861,6 +861,4 @@ graph TD
 | `iceServers` | STUN server configurations used by `RTCPeerConnection` for NAT traversal. | `apps/frontend/src/hooks/useWebRTC.ts` |
 | `GridPattern` | A decorative background component used in the landing/register page. | `apps/frontend/src/pages/Register.tsx` |
 | `registerMonacoSnippets` | Utility function to inject custom code snippets into the Monaco Editor instance. | `apps/frontend/src/pages/CodeEditor.tsx` |
-```
 
-Make sure the markdown is properly formatted and the mermaid diagrams render correctly. The new content should seamlessly continue from the existing file.
