@@ -733,3 +733,134 @@ Redis serves three primary functions for horizontal scaling:
 
 1. **First Join**: When the first user connects to a `roomId` on a server instance, that instance subscribes to the Redis channel.
 2. **Horizontal Scaling**: Multiple server instances each subscribe once per room, fanning out messages to their local clients.
+3. **Cleanup**: When the local `rooms[roomId]` array becomes empty (all users disconnected from that instance), the instance calls `unsubscribe` on the Redis channel to conserve resources.
+
+#### Code Execution Integration
+
+The `worker` service also acts as a Redis publisher. After executing code in a Docker container, it publishes the `stdout`/`stderr` directly to the `roomId` channel. The WebSocket servers, already subscribed to that channel, receive the result and push it to the frontend clients.
+
+```mermaid
+graph LR
+    subgraph "Server Instance A"
+        WS_A["WebSocket Server"]
+    end
+    
+    subgraph "Server Instance B"
+        WS_B["WebSocket Server"]
+    end
+
+    subgraph "Execution Layer"
+        Worker["Code Worker"]
+    end
+
+    Redis[("Redis Pub/Sub Channel: Room_123")]
+
+    WS_A -- "publish(Room_123, msg)" --> Redis
+    Worker -- "publish(Room_123, result)" --> Redis
+    Redis -- "subscribe(Room_123)" --> WS_A
+    Redis -- "subscribe(Room_123)" --> WS_B
+    
+    WS_A --> Client1["User 1"]
+    WS_B --> Client2["User 2"]
+```
+
+---
+
+## Glossary
+
+This section provides definitions for the domain-specific terminology, architectural concepts, and internal code symbols used within the SYNC-CODE platform.
+
+### Core System Terms
+
+#### Room
+A logical isolation boundary for a collaborative session. Every session is identified by a unique `roomId`.
+- **Implementation**: Rooms are managed on the WebSocket server in a `rooms` object.
+- **ID Generation**: Uses `hyperdyperid`'s `str10_36` to create short, URL-friendly identifiers.
+- **State Persistence**: Room user lists are stored in Redis as Hashes using the key pattern `room:${roomId}:users`.
+
+#### Submission
+A request to execute a snippet of code in a specific language with optional input.
+- **Flow**: Frontend sends code to the Express server, which pushes a JSON payload to the Redis `problems` list.
+- **Worker Consumption**: The Code Execution Worker uses `brPop` to wait for and process these submissions.
+
+### Technical & Code Definitions
+
+#### Yjs & Monaco Binding
+The mechanism used for CRDT-based text synchronization.
+- **Y.Doc**: The shared document instance representing the editor content.
+- **MonacoBinding**: A bridge that connects the Monaco Editor instance to a Yjs `Y.Text` type.
+- **Provider**: The `WebsocketProvider` connects the client to a dedicated Yjs sync server (port 5001).
+
+#### Perfect Negotiation
+A WebRTC signaling pattern used to handle SDP offer/answer collisions without complex state machines.
+- **Polite/Impolite**: Peers are assigned roles based on their `userId`. If a collision occurs, the "polite" peer drops its offer and accepts the incoming one.
+- **Logic**: Implemented in the `useWebRTC` hook to manage peer connections dynamically.
+
+#### Message Router
+A centralized dispatching logic on the WebSocket server that handles incoming client messages.
+- **Symbol**: `requestRouter`
+- **Pattern**: Maps `MessageTypes` (e.g., `whiteboard_stroke`, `chat_message`) to specific handler functions that interact with the Redis `publisherClient`.
+
+### Code Entity Mapping
+
+#### Collaborative Execution Flow
+
+```mermaid
+graph LR
+    subgraph "Frontend Space"
+        A["CodeEditor.tsx"] -- "POST /submit" --> B["Express Server"]
+    end
+
+    subgraph "Redis Backbone"
+        B -- "lPush('problems', payload)" --> C[("Redis: 'problems' list")]
+        D["Worker: main()"] -- "brPop('problems')" --> C
+    end
+
+    subgraph "Execution Space"
+        D -- "processSubmission()" --> E["Docker Container"]
+        E -- "stdout/stderr" --> F["Worker: exec()"]
+        F -- "publish(roomId, result)" --> G[("Redis: Pub/Sub")]
+    end
+
+    subgraph "Real-time Feedback"
+        G -- "subscribe(roomId)" --> H["WebSocket Server"]
+        H -- "ws.send('output')" --> A
+    end
+```
+
+#### WebRTC Signaling & Media
+
+```mermaid
+graph TD
+    subgraph "useWebRTC Hook"
+        A["createPeerConnection()"]
+        B["onnegotiationneeded"]
+        C["onicecandidate"]
+    end
+
+    subgraph "Signaling Protocol"
+        B -- "type: 'webrtc_offer'" --> D["requestRouter.ts"]
+        C -- "type: 'webrtc_ice_candidate'" --> D
+    end
+
+    subgraph "WebSocket Server Logic"
+        D -- "publisherClient.publish(roomId)" --> E["Redis Pub/Sub"]
+        E -- "parsed.type === 'direct'" --> F["index.ts: wss.on('connection')"]
+        F -- "targetUser.ws.send()" --> G["Remote useWebRTC"]
+    end
+```
+
+### Glossary Table
+
+| Term | Definition | Code Reference |
+|:---|:---|:---|
+| `requestForAllData` | A handshake message sent by a new user to fetch the current room state (code, language, input) from existing peers. | `apps/websocket-server/src/routers/router.ts` |
+| `whiteboard_stroke` | A message containing a `Stroke` object (points, tool, author) for canvas synchronization. | `apps/frontend/src/components/Whiteboard.tsx` |
+| `userAtom` | Recoil state storing the current user's identity (`id`, `name`, `roomId`). | `apps/frontend/src/pages/Register.tsx` |
+| `ask_ai` | A request routed to the Gemini AI API to generate pair-programming assistance. | `apps/websocket-server/src/routers/router.ts` |
+| `iceServers` | STUN server configurations used by `RTCPeerConnection` for NAT traversal. | `apps/frontend/src/hooks/useWebRTC.ts` |
+| `GridPattern` | A decorative background component used in the landing/register page. | `apps/frontend/src/pages/Register.tsx` |
+| `registerMonacoSnippets` | Utility function to inject custom code snippets into the Monaco Editor instance. | `apps/frontend/src/pages/CodeEditor.tsx` |
+```
+
+Make sure the markdown is properly formatted and the mermaid diagrams render correctly. The new content should seamlessly continue from the existing file.
