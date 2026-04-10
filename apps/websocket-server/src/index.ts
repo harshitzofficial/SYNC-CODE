@@ -271,6 +271,7 @@ async function start_process() {
         const addr: any = server.address();
         console.log(`Server listening on port ${addr.port}`);
     });
+    
 
     const WS_PORT = process.env.PORT || 5000;
     server.listen(WS_PORT, '0.0.0.0', () => {
