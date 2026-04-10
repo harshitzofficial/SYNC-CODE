@@ -271,9 +271,14 @@ async function start_process() {
         const addr: any = server.address();
         console.log(`Server listening on port ${addr.port}`);
     });
+    
 
-    server.listen(5000, '0.0.0.0', () => {
+    server.listen(process.env.PORT || 5000, '0.0.0.0', () => {
         console.log("web socket server started on 5000", server.address());
+    });
+    const WS_PORT = process.env.PORT || 5000;
+    server.listen(WS_PORT, '0.0.0.0', () => {
+        console.log(`web socket server started on ${WS_PORT}`, server.address());
     });
 
     const yjsServer = http.createServer();
