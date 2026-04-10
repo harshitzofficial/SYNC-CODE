@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { X } from "lucide-react";
 
+// CodeEditor Component
 export const CodeEditor = () => {
     const [code, setCode] = useState<any>("// Write your code here...");
     const editorRef = useRef<any>(null);

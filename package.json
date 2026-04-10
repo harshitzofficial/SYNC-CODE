@@ -19,7 +19,6 @@
   ],
   "packageManager": "npm@10.8.1",
   "dependencies": {
-    "docker": "^1.0.0",
     "y-websocket": "^1.5.0"
   }
 }
