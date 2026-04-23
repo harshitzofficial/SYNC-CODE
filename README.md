@@ -40,6 +40,10 @@ Built as a modern distributed system, it leverages **CRDTs (Conflict-free Replic
 ---
 
 ## System Architecture
+<img width="3709" height="1982" alt="image" src="https://github.com/user-attachments/assets/7de7f269-4947-42e9-ac96-afaa235a1867" />
+<img width="1997" height="1565" alt="image" src="https://github.com/user-attachments/assets/17359647-c1c8-4e53-986f-18e8d1a62316" />
+
+
 
 The platform is composed of four distinct services that interact via WebSockets, REST APIs, and Redis Pub/Sub.
 
