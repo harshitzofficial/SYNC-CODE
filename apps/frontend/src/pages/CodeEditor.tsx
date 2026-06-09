@@ -270,17 +270,6 @@ export const CodeEditor = () => {
         )
     }
 
-    const handleCodeChange = (value: any) => {
-        setCode(value);
-        socket?.send(
-            JSON.stringify({
-                type: "code",
-                code: value,
-                roomId: user.roomId
-            })
-        )
-    }
-
     const handleSendChatMessage = (text: string, imageUrl?: string) => {
         const newMessage: ChatMessage = {
             id: uuidv4(),
@@ -342,7 +331,7 @@ export const CodeEditor = () => {
         toast.info("Gemini AI is analyzing your code...");
     };
 
-    const handleEditorDidMount = (editor: any, monaco: any) => {
+    const handleEditorDidMount = (editor: any) => {
         editorRef.current = editor;
 
         const doc = new Y.Doc();
@@ -360,7 +349,7 @@ export const CodeEditor = () => {
             }, 1500);
         });
 
-        const binding = new MonacoBinding(type, editorRef.current.getModel(), new Set([editorRef.current]), provider.awareness);
+        new MonacoBinding(type, editorRef.current.getModel(), new Set([editorRef.current]), provider.awareness);
 
         provider.awareness.setLocalStateField('user', {
              name: user.name || 'Anonymous',
