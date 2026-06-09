@@ -57,7 +57,7 @@ async function processSubmission(submission: any) {
                 executionCommand = `docker run --rm --memory="512m" --cpus="0.5" --network none -v "${dockerPath}:/usr/src/app" -w /usr/src/app gcc:latest sh -c "g++ userCode.cpp -o a.out && ./a.out < input.txt"`;
                 break;
 
-            case "go":
+            case "go":  
                 codeFilePath = path.join(codeDir, "userCode.go");
                 await fs.writeFile(codeFilePath, code);
                 executionCommand = `docker run --rm --memory="512m" --cpus="0.5" --network none -v "${dockerPath}:/usr/src/app" -w /usr/src/app golang:1.20-alpine sh -c "go run userCode.go < input.txt"`;

@@ -356,7 +356,7 @@ export const CodeEditor = () => {
             // 1.5s Debounce for saving data
             debounceTimer = setTimeout(() => {
                 localStorage.setItem(`synccode_${user.roomId}`, type.toString());
-                toast.success('Auto-saved locally', { description: 'Code backed up to browser storage' });
+                // Silently auto-save without showing a toast every time
             }, 1500);
         });
 

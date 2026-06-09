@@ -118,7 +118,6 @@ async function start_process() {
                 return;
             }
 
-            console.log("Message received", data.type);
 
             // if (data.type === "requestToGetUsers") {
             //     const users = rooms[roomId].map((user: any) => ({
@@ -273,7 +272,7 @@ async function start_process() {
     });
     
 
-    const WS_PORT = process.env.PORT || 5000;
+    const WS_PORT = Number(process.env.PORT) || 5000;
     server.listen(WS_PORT, '0.0.0.0', () => {
         console.log(`web socket server started on ${WS_PORT}`, server.address());
     });
