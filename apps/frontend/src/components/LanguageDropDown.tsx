@@ -27,14 +27,6 @@ const languages = [
     label: "C++",
   },
   {
-    value: "java",
-    label: "Java",
-  },
-  {
-    value: "rust",
-    label: "Rust",
-  },
-  {
     value: "go",
     label: "Go",
   },
