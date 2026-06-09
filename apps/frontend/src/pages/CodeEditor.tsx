@@ -347,7 +347,7 @@ export const CodeEditor = () => {
 
         const doc = new Y.Doc();
         // Connect to our specialized Yjs WebSocket server on port 5001
-        const provider = new WebsocketProvider(`ws://${window.location.hostname}:5001`, user.roomId, doc);
+        const provider = new WebsocketProvider(import.meta.env.VITE_YJS_WEBSOCKET_URL || `ws://${window.location.hostname}:5001`, user.roomId, doc);
         const type = doc.getText('monaco');
 
         let debounceTimer: ReturnType<typeof setTimeout>;
