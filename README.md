@@ -876,23 +876,13 @@ VITE_YJS_WS_URL=ws://localhost:5001
 
 ## Deployment
 
-| Service | Platform | Notes |
+| Service | Platform |
 |---|---|---|
-| `frontend` | **Vercel** | Connect repo, set `VITE_*` env vars, auto-deploys on push to `main` |
-| `express-server` | **AWS ECS** | Multi-stage Dockerfile — `builder` compiles TS, `runner` serves `dist/index.js` |
-| `websocket-server` | **AWS EC2** | Stateful — run with PM2 (`pm2 start dist/index.js`). Needs ports 5000 and 5001 open. |
-| `worker` | **AWS ECS** | Requires Docker-in-Docker or privileged container mode for `docker run` inside the container |
-
+| `frontend` | **Vercel** | 
+| `express-server` | **AWS EC2** | 
+| `websocket-server` | **AWS EC2** | 
+| `worker` | **AWS EC2** | 
 **Docker build example:**
-
-```bash
-cd apps/express-server
-docker build -t sync-code-api .
-docker tag sync-code-api:latest <account-id>.dkr.ecr.<region>.amazonaws.com/sync-code-api:latest
-docker push <account-id>.dkr.ecr.<region>.amazonaws.com/sync-code-api:latest
-```
-
-> **Production Redis:** Use **AWS ElastiCache (Redis)** so all deployed services share the same Redis instance. Update `REDIS_URL` in each service's ECS task definition or EC2 environment.
 
 ---
 
@@ -916,4 +906,3 @@ docker push <account-id>.dkr.ecr.<region>.amazonaws.com/sync-code-api:latest
 ---
 
 Built by **Harshit Singh**
-````
