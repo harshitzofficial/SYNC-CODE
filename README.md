@@ -47,6 +47,19 @@
 - **Horizontally scalable** backend via Redis Pub/Sub
 - **Session-protected routing** with Recoil-based global state
 
+---
+
+### Cloud IDE Architecture
+
+<img width="1111" height="601" alt="image" src="https://github.com/user-attachments/assets/517bfa0b-995c-47f6-95dc-74a01bc73aec" />
+
+
+### Collaborative Code Editor Architecture
+
+<img width="940" height="749" alt="image" src="https://github.com/user-attachments/assets/87fd2383-9189-4568-9f48-e667d2e56efd" />
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -731,16 +744,6 @@ VITE_YJS_WEBSOCKET_URL=ws://<EC2_PUBLIC_IP>:5001
    - `POST /submit` reaches your EC2 Express API
    - WebSocket connection establishes to your EC2 WebSocket server
 
----
-
-### Cloud IDE Architecture
-
-<img width="1111" height="601" alt="image" src="https://github.com/user-attachments/assets/517bfa0b-995c-47f6-95dc-74a01bc73aec" />
-
-
-### Collaborative Code Editor Architecture
-
-<img width="940" height="749" alt="image" src="https://github.com/user-attachments/assets/87fd2383-9189-4568-9f48-e667d2e56efd" />
 
 ---
 
