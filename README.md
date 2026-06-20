@@ -47,18 +47,6 @@
 - **Horizontally scalable** backend via Redis Pub/Sub
 - **Session-protected routing** with Recoil-based global state
 
----
-### Cloud IDE Architecture
-
-<img width="1111" height="601" alt="image" src="https://github.com/user-attachments/assets/517bfa0b-995c-47f6-95dc-74a01bc73aec" />
-
-
-### Collaborative Code Editor Architecture
-
-<img width="940" height="749" alt="image" src="https://github.com/user-attachments/assets/87fd2383-9189-4568-9f48-e667d2e56efd" />
-
----
-
 ## Tech Stack
 
 | Layer | Technology |
@@ -513,6 +501,8 @@ A shared drawing surface using a **dual-canvas architecture**:
 
 ---
 
+
+
 ## Infrastructure & Deployment
 
 ### AWS Deployment Topology
@@ -528,16 +518,13 @@ graph TD
             FE["Frontend (React SPA)"]
         end
 
-        subgraph "ECS Cluster"
+        subgraph "EC2 Instance"
             EX["express-server (Port 3000)"]
             WK["worker (Background)"]
-        end
-
-        subgraph "EC2 Instance"
             WS["websocket-server (Ports 5000 / 5001)"]
         end
 
-        subgraph "ElastiCache / Redis"
+        subgraph "Redis (EC2 or ElastiCache)"
             RL[["List: 'problems'"]]
             RP[["Pub/Sub: roomId"]]
             RH[["Hash: room:roomId:users"]]
@@ -558,11 +545,12 @@ graph TD
 | Service | Host | Port(s) | Notes |
 |---|---|---|---|
 | Frontend | Vercel | 443 (HTTPS) | Global CDN delivery |
-| Express Server | AWS ECS | 3000 | Stateless; auto-scalable |
-| Worker | AWS ECS | N/A | Background job processor |
+| Express Server | AWS EC2 | 3000 | Stateless REST API |
+| Worker | AWS EC2 | N/A | Background job processor |
 | WebSocket Server | AWS EC2 | 5000, 5001 | Stateful; long-lived connections |
+| Redis | AWS EC2 / ElastiCache | 6379 | Shared pub/sub, queue & presence |
 
-EC2 is used for the WebSocket server specifically to support persistent, long-lived connections that ECS's load balancer model does not handle as cleanly.
+EC2 is used for all backend services to support persistent, long-lived WebSocket connections and shared Docker access for code sandboxing.
 
 ---
 
@@ -595,6 +583,164 @@ The Worker image is built on `node:18` and pre-installs all language runtimes ne
 - `golang`
 
 It also creates a non-root user `myuser` and transfers ownership of `/usr/src/app` to it before startup, providing defense-in-depth against privilege escalation.
+
+**Docker Compose (all backend services together):**
+
+```yaml
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  express-server:
+    build:
+      context: ./apps/express-server
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PORT=3000
+    depends_on:
+      - redis
+
+  websocket-server:
+    build:
+      context: ./apps/websocket-server
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - GEMINI_API_KEY=your_google_gemini_api_key
+      - PORT=5000
+    depends_on:
+      - redis
+
+  worker:
+    build:
+      context: ./apps/worker
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+```
+
+---
+
+### Part 1: Deploying the Backend on AWS EC2
+
+#### Step 1.1 — Launch an AWS EC2 Instance
+
+1. Log in to the [AWS Management Console](https://console.aws.amazon.com/).
+2. Navigate to **EC2** → **Instances** → **Launch instances**.
+3. **Name**: `sync-code-backend`
+4. **AMI**: Ubuntu Server 24.04 LTS (or 22.04 LTS)
+5. **Instance Type**: `t3.micro` (free tier) or `t3.small` (recommended to avoid memory issues during builds)
+6. **Key Pair**: Create or select an existing key pair (e.g., `sync-key.pem`)
+7. **Network Settings**: Allow SSH, HTTP, and HTTPS traffic
+8. Click **Launch instance**
+
+#### Step 1.2 — Connect & Install Docker
+
+```bash
+# Set permissions on your key file
+chmod 400 sync-key.pem
+
+# SSH into the instance
+ssh -i "sync-key.pem" ubuntu@<EC2_PUBLIC_IP>
+
+# Install Docker and Docker Compose
+sudo apt update
+sudo apt install docker.io docker-compose -y
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -aG docker $USER
+```
+
+> **Note:** Disconnect and reconnect (`exit` and re-SSH) for the `docker` group changes to take effect.
+
+#### Step 1.3 — Clone the Repo & Configure Services
+
+```bash
+git clone https://github.com/harshitzofficial/SYNC-CODE.git sync-code
+cd sync-code
+```
+
+Create a `docker-compose.yml` at the project root using the template in the [Docker Compose section above](#docker-configuration). Add your `GEMINI_API_KEY` and any other secrets to the `environment` blocks.
+
+#### Step 1.4 — Build & Run the Backend
+
+```bash
+# Build images and start all services in detached mode
+docker-compose up -d --build
+
+# Verify all containers are running
+docker-compose ps
+```
+
+You should see `redis`, `express-server`, `websocket-server`, and `worker` all in the **Up** state.
+
+#### Step 1.5 — Open Required Ports in AWS Security Group
+
+Navigate to your EC2 instance → **Security** tab → click the Security Group → **Edit Inbound Rules**, and add:
+
+| Port | Protocol | Source | Purpose |
+|---|---|---|---|
+| `3000` | Custom TCP | `0.0.0.0/0` | Express REST API |
+| `5000` | Custom TCP | `0.0.0.0/0` | WebSocket signaling |
+| `5001` | Custom TCP | `0.0.0.0/0` | Yjs CRDT sync |
+
+> **Tip:** For production, set up an **Nginx reverse proxy + Certbot** to route traffic through ports 80/443 with SSL/TLS, serving the backend over `https://` and `wss://` instead of exposing raw ports.
+
+---
+
+### Part 2: Deploying the Frontend on Vercel
+
+#### Step 2.1 — Set Production Environment Variables
+
+In `apps/frontend/.env.production`, point all URLs to your EC2 instance:
+
+```env
+VITE_PRIMARY_BACKEND_URL=http://<EC2_PUBLIC_IP>:3000
+VITE_WS_URL=ws://<EC2_PUBLIC_IP>:5000
+VITE_YJS_WEBSOCKET_URL=ws://<EC2_PUBLIC_IP>:5001
+```
+
+#### Step 2.2 — Deploy via Vercel Dashboard
+
+1. Log in to [Vercel](https://vercel.com/) → **Add New** → **Project**
+2. Import your GitHub repository
+3. Vercel auto-detects **Turborepo** — configure build settings:
+   - **Root Directory**: `apps/frontend`
+   - **Framework Preset**: Vite
+   - **Build Command**: `npm run build` or `turbo run build --filter=frontend`
+   - **Output Directory**: `dist`
+4. Add environment variables from Step 2.1 in the **Environment Variables** section
+5. Click **Deploy**
+
+> [!IMPORTANT]
+> If the frontend (HTTPS on Vercel) throws **mixed-content errors** when connecting to HTTP backend endpoints, you **must** configure SSL/TLS on your EC2 instance (Nginx + Certbot) so the backend is reachable via `https://` and `wss://`.
+
+#### Step 2.3 — Verify Deployment
+
+1. Click **Visit** after the Vercel build completes.
+2. Open **DevTools → Network tab** and confirm:
+   - `POST /submit` reaches your EC2 Express API
+   - WebSocket connection establishes to your EC2 WebSocket server
+
+---
+
+### Cloud IDE Architecture
+
+<img width="1111" height="601" alt="image" src="https://github.com/user-attachments/assets/517bfa0b-995c-47f6-95dc-74a01bc73aec" />
+
+
+### Collaborative Code Editor Architecture
+
+<img width="940" height="749" alt="image" src="https://github.com/user-attachments/assets/87fd2383-9189-4568-9f48-e667d2e56efd" />
 
 ---
 
