@@ -1,11 +1,6 @@
-Here is the complete, detailed `README.md` for the SYNC-CODE project:
-
----
-
-```markdown
 # SYNC-CODE
 
-A full-stack, cloud-native collaborative IDE that allows multiple developers to write, execute, and debug code simultaneously in a browser environment. Built on Yjs CRDTs for real-time text synchronization and Docker sandboxing for secure multi-language code execution.
+SYNC-CODE is a real-time collaborative coding platform featuring a multi-language code editor, interactive whiteboard, WebRTC-based audio/video chat, and integrated AI pair programming.
 
 ---
 
