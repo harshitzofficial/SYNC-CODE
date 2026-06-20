@@ -1,6 +1,6 @@
 # SYNC-CODE
 
-SYNC-CODE is a real-time collaborative coding platform featuring a multi-language code editor, interactive whiteboard, WebRTC-based audio/video chat, and integrated AI pair programming.
+> SYNC-CODE is a real-time collaborative coding platform featuring a multi-language code editor, interactive whiteboard, WebRTC-based audio/video chat, and integrated AI pair programming.
 
 ---
 
@@ -700,54 +700,5 @@ Monaco Editor is also enhanced with custom code snippets for JavaScript, Python,
 | **`problems` list** | The Redis List key used as the FIFO job queue between the Express server (producer) and Worker (consumer). |
 | **`room:{roomId}:users`** | Redis Hash key storing `userId → name` mappings for distributed presence tracking. |
 | **Gemini AI** | Google's `gemini-2.5-flash-lite` model used as the AI Pair Programmer, accessed via `@google/generative-ai`. |
-``` [1](#0-0) [2](#0-1)
 
-### Citations
-
-**File:** package.json (L1-24)
-```json
-{
-  "devDependencies": {
-    "prettier": "^3.2.5",
-    "turbo": "^2.2.3",
-    "typescript": "5.5.4"
-  },
-  "engines": {
-    "node": ">=18"
-  },
-  "scripts": {
-    "build": "turbo build",
-    "dev": "turbo dev",
-    "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
-  },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "packageManager": "npm@10.8.1",
-  "dependencies": {
-    "y-websocket": "^1.5.0"
-  }
-}
-```
-
-**File:** turbo.json (L1-15)
-```json
-{
-    "$schema": "https://turborepo.com/schema.json",
-    "tasks": {
-      "build": {
-        "outputs": ["dist/**"]
-      },
-      "check-types": {
-        "dependsOn": ["^check-types"]
-      },
-      "dev": {
-        "persistent": true,
-        "cache": false
-      }
-    }
-  }
-```
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/harshitzofficial/SYNC-CODE)
