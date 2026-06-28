@@ -71,7 +71,7 @@
 | **Message Broker** | Redis (List, Pub/Sub, Hash) |
 | **Monorepo Tooling** | Turborepo, npm workspaces, Prettier |
 | **Containerization** | Docker (multi-stage builds) |
-| **Deployment** | Vercel (Frontend), AWS ECS (API + Worker), AWS EC2 (WebSocket Server) |
+| **Deployment** | Vercel (Frontend),AWS EC2 (WebSocket Server + Express Server + Worker) |
 
 ---
 
