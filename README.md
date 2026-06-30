@@ -13,6 +13,16 @@
 | <img src="https://github.com/user-attachments/assets/72faa1ba-904f-4383-99da-3f8d490c6e3b" alt="Mobile Screenshot 1" width="250"> | <img src="https://github.com/user-attachments/assets/53ed1ff7-04c7-45df-a836-4f72ed6c6487" alt="Mobile Screenshot 2" width="250"> | <img src="https://github.com/user-attachments/assets/d885c148-a431-4be8-b802-5390ee348a3a" alt="Mobile Screenshot 3" width="250"> |
 
 
+---
+
+### Cloud IDE Architecture
+
+<img width="1111" height="601" alt="image" src="https://github.com/user-attachments/assets/517bfa0b-995c-47f6-95dc-74a01bc73aec" />
+
+
+### Collaborative Code Editor Architecture
+
+<img width="940" height="749" alt="image" src="https://github.com/user-attachments/assets/87fd2383-9189-4568-9f48-e667d2e56efd" />
 
 
 
@@ -62,16 +72,6 @@
 - **Horizontally scalable** backend via Redis Pub/Sub
 - **Session-protected routing** with Recoil-based global state
 
----
-
-### Cloud IDE Architecture
-
-<img width="1111" height="601" alt="image" src="https://github.com/user-attachments/assets/517bfa0b-995c-47f6-95dc-74a01bc73aec" />
-
-
-### Collaborative Code Editor Architecture
-
-<img width="940" height="749" alt="image" src="https://github.com/user-attachments/assets/87fd2383-9189-4568-9f48-e667d2e56efd" />
 
 ---
 
