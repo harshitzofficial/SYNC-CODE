@@ -2,9 +2,23 @@
 
 > SYNC-CODE is a real-time collaborative coding platform featuring a multi-language code editor, interactive whiteboard, WebRTC-based audio/video chat, and integrated AI pair programming.
 
-<img width="1918" height="1020" alt="image" src="https://github.com/user-attachments/assets/bace93c8-fba7-4617-8732-123f3728fd72" />
-<img width="1182" height="852" alt="image" src="https://github.com/user-attachments/assets/84739101-4f93-4c34-99e6-548aae88d3a1" />
-<img width="408" height="878" alt="image" src="https://github.com/user-attachments/assets/72faa1ba-904f-4383-99da-3f8d490c6e3b" />
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/bace93c8-fba7-4617-8732-123f3728fd72" alt="Desktop Screenshot 1" width="900">
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/84739101-4f93-4c34-99e6-548aae88d3a1" alt="Desktop Screenshot 2" width="700">
+</p>
+
+### Mobile
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/72faa1ba-904f-4383-99da-3f8d490c6e3b" alt="Mobile Screenshot 1" width="250">
+  <img src="https://github.com/user-attachments/assets/53ed1ff7-04c7-45df-a836-4f72ed6c6487" alt="Mobile Screenshot 2" width="250">
+  <img src="https://github.com/user-attachments/assets/d885c148-a431-4be8-b802-5390ee348a3a" alt="Mobile Screenshot 3" width="250">
+</p>
+
+
 
 
 
