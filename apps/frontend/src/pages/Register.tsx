@@ -34,46 +34,24 @@ export const Register = () => {
 
     // --- CORE LOGIC: WEBSOCKET CONNECTION ---
     // This function handles creating a user, connecting to the backend server, and joining a room
-    const initializeSocket = () => {
-        setLoading(true); // Disable buttons while connecting
-        let generatedId = "";
-
-        // 1. Check if the user already has an ID in global state. If not, generate one.
-        if (user.id == "") {
-            console.log("user_id generated")
-            generatedId = generateId();
-            setUser({
-                id: generatedId,
-                name: name,
-                roomId: ""
-            });
+    const initializeSocket = (overrideRoomId?: string) => {
+        // Guard clause: Ensure the user typed a name before attempting to connect
+        if (name == "") {
+            alert("Please enter a name to continue");
+            return;
         }
 
-        console.log(generatedId);
-        console.log(!socket)
+        setLoading(true); // Disable buttons while connecting
+        const currentUserId = user.id || generateId();
+        const finalRoomId = overrideRoomId !== undefined ? overrideRoomId : roomId;
 
-        // 2. Only create a new WebSocket connection if one doesn't exist, or if the old one closed
+        // Only create a new WebSocket connection if one doesn't exist, or if the old one closed
         if (!socket || socket.readyState === WebSocket.CLOSED) {
             console.log("inside");
-            
-            // Prepare user data for the connection URL
-            const u = {
-                id: user.id == "" ? generatedId : user.id,
-                name: name
-            }
 
-            console.log(user.id)
-
-            // Guard clause: Ensure the user typed a name before attempting to connect
-            if (name == "") {
-                alert("Please enter a name to continue");
-                setLoading(false);
-                return;
-            }
-
-            // 3. Establish the actual WebSocket connection to the backend server
+            // Establish the actual WebSocket connection to the backend server
             // Passes roomId, id, and name as query parameters in the URL
-            const ws = new WebSocket(`${import.meta.env.VITE_WEBSOCKET_SERVER_URL}?roomId=${roomId}&id=${u.id}&name=${u.name}`);
+            const ws = new WebSocket(`${import.meta.env.VITE_WEBSOCKET_SERVER_URL}?roomId=${finalRoomId}&id=${currentUserId}&name=${name}`);
 
             // Save this connection to global state so the rest of the app can use it
             setSocket(ws);
@@ -96,13 +74,13 @@ export const Register = () => {
                     
                     // Update global user state to include the confirmed room ID
                     setUser({
-                        id: user.id == "" ? generateId() : user.id,
+                        id: currentUserId,
                         name: name,
                         roomId: data.roomId
                     });
                     
                     setLoading(false);
-                    // 4. Navigate the user away from the register page and into the actual code editor room!
+                    // Navigate the user away from the register page and into the actual code editor room!
                     navigate("/code/" + data.roomId);
                 }
             };
@@ -131,14 +109,15 @@ export const Register = () => {
     const handleNewRoom = () => {
         console.log("new room opened")
         if (!loading) {
-            initializeSocket(); // Triggers socket init (empty roomId means server will generate a new one)
+            setRoomId("");
+            initializeSocket(""); // Triggers socket init (empty roomId means server will generate a new one)
         }
     }
 
     // Called when user clicks "Join Existing Room"
     const handleJoinRoom = () => {
         if (roomId != "" && !loading) {
-            initializeSocket(); // Triggers socket init with the provided roomId
+            initializeSocket(roomId); // Triggers socket init with the provided roomId
         } else {
             alert("Please enter a valid room ID"); // Prevents joining without an ID
         }
