@@ -2,6 +2,13 @@
 
 > SYNC-CODE is a real-time collaborative coding platform featuring a multi-language code editor, interactive whiteboard, WebRTC-based audio/video chat, and integrated AI pair programming.
 
+<img width="1918" height="1020" alt="image" src="https://github.com/user-attachments/assets/bace93c8-fba7-4617-8732-123f3728fd72" />
+<img width="1182" height="852" alt="image" src="https://github.com/user-attachments/assets/84739101-4f93-4c34-99e6-548aae88d3a1" />
+<img width="408" height="878" alt="image" src="https://github.com/user-attachments/assets/72faa1ba-904f-4383-99da-3f8d490c6e3b" />
+
+
+
+
 ---
 
 ## Table of Contents
