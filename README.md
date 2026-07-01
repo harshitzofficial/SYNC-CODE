@@ -97,40 +97,71 @@
 The system is composed of four independent services communicating via HTTP, WebSockets, and Redis.
 
 ```mermaid
-graph TD
-    subgraph "Client"
-        FE["apps/frontend (React/Vite)"]
+graph TB
+    subgraph Client_Layer
+        direction LR
+        UserA["User A Browser"]
+        UserB["User B Browser"]
+        
+        UserA <.->|"WebRTC Direct P2P Audio/Video"| UserB
     end
 
-    subgraph "API Layer"
-        EX["apps/express-server (Port 3000)"]
+    subgraph Frontend_Hosting
+        Vercel["Vercel CDN"]
+    end
+    
+    Vercel -.->|"Serves React/Vite assets"| Client_Layer
+
+    subgraph AWS_EC2_Instance
+        subgraph Reverse_Proxy_Layer
+            Nginx["Nginx + Certbot SSL"]
+        end
+
+        subgraph Docker_Compose_Environment
+            API["Express Server Port 3000"]
+            WS["WebSocket Server Port 5000"]
+            YJS_WS["Yjs Server Port 5001"]
+            Worker["Worker Service"]
+            
+            subgraph Isolated_Execution
+                ExecContainers["Language Sandboxes"]
+            end
+            
+            Worker -->|"Spawns / Runs Code in"| Isolated_Execution
+        end
+        
+        subgraph Data_Storage
+            Redis[("Redis")]
+            RedisLists{{"Redis Lists"}}
+            RedisPubSub(("Redis Pub/Sub"))
+            RedisHash{{"Redis Hashes"}}
+            
+            Redis --- RedisLists
+            Redis --- RedisPubSub
+            Redis --- RedisHash
+        end
+    end
+    
+    subgraph External_APIs
+        Gemini["Google Gemini API"]
     end
 
-    subgraph "Real-Time Layer"
-        WS["apps/websocket-server (Port 5000 - Signaling)"]
-        YJS["y-websocket (Port 5001 - CRDT Sync)"]
-    end
-
-    subgraph "Execution Layer"
-        WK["apps/worker (Background)"]
-    end
-
-    subgraph "Redis Infrastructure"
-        RL[("List: 'problems'")]
-        RP[("Pub/Sub: roomId")]
-        RH[("Hash: room:roomId:users")]
-    end
-
-    FE -- "POST /submit" --> EX
-    FE -- "WebSocket Signaling" --> WS
-    FE -- "CRDT Binary Sync" --> YJS
-
-    EX -- "lPush" --> RL
-    RL -- "brPop" --> WK
-    WK -- "publish result" --> RP
-    RP -- "subscribe" --> WS
-    WS -- "ws.send(output)" --> FE
-    WS -- "hSet / hGetAll" --> RH
+    Client_Layer -->|"HTTPS REST API"| Nginx
+    Client_Layer <-->|"WSS (Chat, Whiteboard, Signaling)"| Nginx
+    Client_Layer <-->|"WSS (Monaco CRDT Sync)"| Nginx
+    
+    Nginx -->|"Proxy /api"| API
+    Nginx -->|"Proxy /ws"| WS
+    Nginx -->|"Proxy /yjs"| YJS_WS
+    
+    API -->|"1. lPush (Send Code Job)"| RedisLists
+    Worker -->|"2. brPop (Receive Code Job)"| RedisLists
+    Worker -->|"3. publish (Send Output)"| RedisPubSub
+    
+    WS <-->|"publish / subscribe"| RedisPubSub
+    WS <-->|"hSet / hGetAll"| RedisHash
+    
+    WS <-->|"Streaming Prompts & Responses"| Gemini
 ```
 
 ---
