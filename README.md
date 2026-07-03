@@ -577,8 +577,8 @@ sequenceDiagram
     A->>A: pc.addIceCandidate(candidate)
 
     Note over A, B: Phase 4 — Direct P2P (WebSocket server no longer involved)
-    A-->B: RTCPeerConnection established (UDP/SRTP)
-    A<-->B: Audio & Video streams flow directly
+    A-->>B: RTCPeerConnection established (UDP/SRTP)
+    A<<->>B: Audio and Video streams flow directly
 ```
 
 
