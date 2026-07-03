@@ -529,56 +529,45 @@ Implemented in the `useWebRTC` hook with a **mesh topology** — every user main
 
 ```mermaid
 sequenceDiagram
-    participant A as "User A (Browser)"
-    participant WS as "WebSocket Server (port 5000)"
-    participant RD as "Redis Pub/Sub"
-    participant ST as "Google STUN Server"
-    participant B as "User B (Browser)"
+    participant U1 as User A (Impolite)
+    participant WS as WebSocket Server
+    participant U2 as User B (Polite)
+    participant ST as STUN Server
 
-    Note over A, B: Phase 1 — Room Join & Peer Discovery
-    A->>WS: Connect (roomId, userId, name)
-    B->>WS: Connect (roomId, userId, name)
-    WS->>RD: publish(roomId, { type: "broadcast", data: { type: "users" } })
-    RD-->>A: users list updated
-    RD-->>B: users list updated
-    Note over A, B: Both now know each other's userId
+    Note over U1,U2: SDP Offer / Answer Exchange
 
-    Note over A, B: Phase 2 — SDP Offer / Answer Exchange
-    A->>A: createPeerConnection(B.userId)
-    A->>A: pc.onnegotiationneeded → createOffer()
-    A->>A: pc.setLocalDescription(offer)
-    A->>WS: { type: "webrtc_offer", targetUserId: B, offer }
-    WS->>RD: publish(roomId, { type: "direct", targetUserId: B })
-    RD-->>WS: route to User B
-    WS->>B: forward { type: "webrtc_offer", senderId: A }
-    B->>B: polite = (B.userId > A.userId)
-    B->>B: pc.setRemoteDescription(offer)
-    B->>B: pc.createAnswer() → pc.setLocalDescription(answer)
-    B->>WS: { type: "webrtc_answer", targetUserId: A, answer }
-    WS->>RD: publish(roomId, { type: "direct", targetUserId: A })
-    RD-->>WS: route to User A
-    WS->>A: forward { type: "webrtc_answer", senderId: B }
-    A->>A: pc.setRemoteDescription(answer)
+    U1->>U1: createPeerConnection()
+    U1->>U1: createOffer()
+    U1->>U1: setLocalDescription(offer)
+    U1->>WS: send(webrtc_offer)
 
-    Note over A, B: Phase 3 — ICE Candidate Exchange (IP Discovery)
-    A->>ST: STUN Binding Request
-    ST-->>A: public IP:port (ICE candidate)
-    A->>WS: { type: "webrtc_ice_candidate", targetUserId: B, candidate }
-    WS->>RD: publish(roomId, { type: "direct", targetUserId: B })
-    RD-->>WS: route to User B
-    WS->>B: forward { type: "webrtc_ice_candidate", senderId: A }
-    B->>B: pc.addIceCandidate(candidate)
-    B->>ST: STUN Binding Request
-    ST-->>B: public IP:port (ICE candidate)
-    B->>WS: { type: "webrtc_ice_candidate", targetUserId: A, candidate }
-    WS->>RD: publish(roomId, { type: "direct", targetUserId: A })
-    RD-->>WS: route to User A
-    WS->>A: forward { type: "webrtc_ice_candidate", senderId: B }
-    A->>A: pc.addIceCandidate(candidate)
+    WS->>U2: forward(webrtc_offer)
 
-    Note over A, B: Phase 4 — Direct P2P (WebSocket server no longer involved)
-    A-->>B: RTCPeerConnection established (UDP/SRTP)
-    A<<->>B: Audio and Video streams flow directly
+    U2->>U2: setRemoteDescription(offer)
+    U2->>U2: createAnswer()
+    U2->>U2: setLocalDescription(answer)
+    U2->>WS: send(webrtc_answer)
+
+    WS->>U1: forward(webrtc_answer)
+    U1->>U1: setRemoteDescription(answer)
+
+    Note over U1,U2: ICE Candidate Exchange
+
+    U1->>ST: STUN Binding Request
+    ST-->>U1: ICE Candidate
+    U1->>WS: send(webrtc_ice_candidate)
+    WS->>U2: forward(candidate)
+    U2->>U2: addIceCandidate(candidate)
+
+    U2->>ST: STUN Binding Request
+    ST-->>U2: ICE Candidate
+    U2->>WS: send(webrtc_ice_candidate)
+    WS->>U1: forward(candidate)
+    U1->>U1: addIceCandidate(candidate)
+
+    Note over U1,U2: ICE connectivity checks
+    Note over U1,U2: DTLS handshake
+    Note over U1,U2: Secure SRTP audio/video flows
 ```
 
 
