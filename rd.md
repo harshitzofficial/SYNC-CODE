@@ -1,12 +1,10 @@
 # SYNC-CODE
 
-> **SYNC-CODE** is a real-time collaborative coding platform featuring a multi-language code editor, interactive whiteboard, WebRTC-based audio/video chat, and integrated AI pair programming.
-
-**Live Demo:** [https://sync-code-express-server.vercel.app/](https://sync-code-express-server.vercel.app/)
+> SYNC-CODE is a real-time collaborative coding platform featuring a multi-language code editor, interactive whiteboard, WebRTC-based audio/video chat, and integrated AI pair programming.
 
 | Code Editor | Whiteboard |
 |---|---|
-| <img src="https://github.com/user-attachments/assets/bace93c8-fba7-4617-8732-123f3728fd72" alt="Code Editor Screenshot"> | <img src="https://github.com/user-attachments/assets/84739101-4f93-4c34-99e6-548aae88d3a1" alt="Whiteboard Screenshot"> |
+| <img src="https://github.com/user-attachments/assets/bace93c8-fba7-4617-8732-123f3728fd72" alt="Desktop Screenshot 1"> | <img src="https://github.com/user-attachments/assets/84739101-4f93-4c34-99e6-548aae88d3a1" alt="Desktop Screenshot 2"> |
 
 <br>
 
@@ -14,15 +12,20 @@
 |---|---|---|
 | <img src="https://github.com/user-attachments/assets/72faa1ba-904f-4383-99da-3f8d490c6e3b" alt="Mobile Screenshot 1" width="250"> | <img src="https://github.com/user-attachments/assets/53ed1ff7-04c7-45df-a836-4f72ed6c6487" alt="Mobile Screenshot 2" width="250"> | <img src="https://github.com/user-attachments/assets/d885c148-a431-4be8-b802-5390ee348a3a" alt="Mobile Screenshot 3" width="250"> |
 
+
 ---
 
 ### Cloud IDE Architecture
 
-<img width="1111" height="601" alt="Cloud IDE Architecture" src="https://github.com/user-attachments/assets/517bfa0b-995c-47f6-95dc-74a01bc73aec" />
+<img width="1111" height="601" alt="image" src="https://github.com/user-attachments/assets/517bfa0b-995c-47f6-95dc-74a01bc73aec" />
+
 
 ### Collaborative Code Editor Architecture
 
-<img width="940" height="749" alt="Code Editor Architecture" src="https://github.com/user-attachments/assets/87fd2383-9189-4568-9f48-e667d2e56efd" />
+<img width="940" height="749" alt="image" src="https://github.com/user-attachments/assets/87fd2383-9189-4568-9f48-e667d2e56efd" />
+
+
+
 
 ---
 
@@ -32,34 +35,25 @@
 - [Tech Stack](#tech-stack)
 - [Architecture Overview](#architecture-overview)
   - [High-Level Service Topology](#high-level-service-topology)
-  - [Component Breakdown](#component-breakdown)
   - [Code Execution Pipeline](#code-execution-pipeline)
   - [Dual WebSocket Strategy](#dual-websocket-strategy)
   - [Redis Architecture](#redis-architecture)
 - [Monorepo Structure](#monorepo-structure)
-  - [Turborepo Task Pipeline](#turborepo-task-pipeline)
-  - [Root Scripts](#root-scripts)
 - [Services](#services)
-  - [Frontend — `apps/frontend`](#frontend--appsfrontend)
-  - [Express Server — `apps/express-server`](#express-server--appsexpress-server)
-  - [WebSocket Server — `apps/websocket-server`](#websocket-server--appswebsocket-server)
-  - [Worker — `apps/worker`](#worker--appsworker)
+  - [Frontend](#frontend-appsfrontend)
+  - [Express Server](#express-server-appsexpress-server)
+  - [WebSocket Server](#websocket-server-appswebsocket-server)
+  - [Worker](#worker-appsworker)
 - [Real-Time Collaboration Features](#real-time-collaboration-features)
   - [CRDT-Based Code Sync](#crdt-based-code-sync)
   - [WebRTC Audio/Video](#webrtc-audiovideo)
   - [Collaborative Whiteboard](#collaborative-whiteboard)
   - [Chat & AI Integration](#chat--ai-integration)
 - [Infrastructure & Deployment](#infrastructure--deployment)
-  - [AWS Deployment Topology](#aws-deployment-topology)
   - [Docker Configuration](#docker-configuration)
-  - [Part 1 — Deploying Backend on AWS EC2](#part-1--deploying-backend-on-aws-ec2)
-  - [Part 2 — Deploying Frontend on Vercel](#part-2--deploying-frontend-on-vercel)
+  - [AWS Deployment Topology](#aws-deployment-topology)
 - [Environment Variables](#environment-variables)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Development](#development)
-  - [Build](#build)
 - [Supported Languages](#supported-languages)
 - [Security Model](#security-model)
 - [Glossary](#glossary)
@@ -78,6 +72,7 @@
 - **Horizontally scalable** backend via Redis Pub/Sub
 - **Session-protected routing** with Recoil-based global state
 
+
 ---
 
 ## Tech Stack
@@ -91,7 +86,7 @@
 | **Message Broker** | Redis (List, Pub/Sub, Hash) |
 | **Monorepo Tooling** | Turborepo, npm workspaces, Prettier |
 | **Containerization** | Docker (multi-stage builds) |
-| **Deployment** | Vercel (Frontend), AWS EC2 (WebSocket Server + Express Server + Worker) |
+| **Deployment** | Vercel (Frontend),AWS EC2 (WebSocket Server + Express Server + Worker) |
 
 ---
 
@@ -168,19 +163,17 @@ graph TB
     
     WS <-->|"Streaming Prompts & Responses"| Gemini
 ```
+## Component Breakdown
 
----
-
-### Component Breakdown
-
-1. **Client Layer** — A React frontend using Vite, heavily relying on Monaco Editor for code input, Yjs for CRDT-based operational transformations (real-time typing sync), and native WebRTC APIs for peer-to-peer mesh video calling.
-2. **Nginx Reverse Proxy** — Acts as the single entry point to the AWS backend. Terminates SSL (from Certbot) and routes traffic via URL paths (`/api`, `/ws`, `/yjs`) to the isolated Docker containers.
+1. **Client Layer**: A React frontend using Vite, heavily relying on Monaco Editor for code input, Yjs for CRDT-based operational transformations (real-time typing sync), and native WebRTC APIs for peer-to-peer mesh video calling.
+2. **Nginx Reverse Proxy**: Acts as the single entry point to the AWS backend. Terminated SSL (from Certbot) and routes traffic via URL paths (`/api`, `/ws`, `/yjs`) to the isolated Docker containers.
 3. **Backend Services (Node.js)**:
-   - **Express** — Handles standard HTTP requests (auth, saving state, triggering code execution).
-   - **WebSocket (Port 5000)** — A custom `ws` implementation routing WebRTC signaling (offers/answers/ICE), chat messages, whiteboard coordinates, and AI streaming via the Gemini API.
-   - **Yjs Server (Port 5001)** — The standard `y-websocket` server dedicated exclusively to keeping the Monaco Editor document synced across clients.
-   - **Worker** — A detached background service that consumes and executes code jobs from the Redis queue.
-4. **Data Layer (Redis)** — The central nervous system of the backend, utilized for Pub/Sub messaging, presence tracking (Hashes), and a persistent job queue (Lists) to offload heavy code-execution tasks.
+   - **Express**: Handles standard HTTP requests (auth, saving state, triggering code execution).
+   - **WebSocket (Port 5000)**: A custom WS implementation routing WebRTC signaling (offers/answers/ICE), chat messages, Whiteboard coordinates, and acting as a proxy to the Gemini AI API.
+   - **Yjs Server (Port 5001)**: The standard `y-websocket` server dedicated exclusively to keeping the Monaco Editor document synced across clients.
+   - **Worker**: A detached background service.
+4. **Data Layer (Redis)**: The central nervous system of the backend, utilized for Pub/Sub messaging, presence tracking (Hashes), and a persistent job queue (Lists) to offload heavy code-execution tasks.
+
 
 ---
 
@@ -200,7 +193,7 @@ sequenceDiagram
     FE->>EX: POST /submit (code, language, roomId, input)
     EX->>RD: lPush("problems", JSON payload)
     RD-->>WK: brPop("problems") [blocking]
-    WK->>WK: Write files to ./tmp/user-{timestamp}/
+    WK->>WK: Write files to /tmp/user-{timestamp}/
     WK->>WK: docker run --network none --memory=512m --cpus=0.5
     WK->>PS: publish(roomId, stdout/stderr)
     PS-->>WS: message event
@@ -213,8 +206,8 @@ sequenceDiagram
 2. **ID Generation** — Express generates `submissionId = "submission-" + Date.now() + "-" + roomId`.
 3. **Queuing** — Express calls `redisClient.lPush("problems", JSON.stringify(payload))`.
 4. **Consumption** — Worker blocks on `client.brPop("problems", 0)` until a job arrives.
-5. **Staging** — Worker writes `userCode.<ext>` and `input.txt` to a `./tmp/user-{timestamp}/` directory.
-6. **Execution** — Worker spawns a Docker container with a 90-second timeout.
+5. **Staging** — Worker writes `userCode.<ext>` and `input.txt` to a temp directory.
+6. **Execution** — Worker spawns a Docker container with a 20-second timeout.
 7. **Result** — Worker publishes `stdout`/`stderr` to Redis channel `roomId`.
 8. **Relay** — WebSocket server receives the Pub/Sub message and calls `ws.send()` to all clients in the room.
 
@@ -311,7 +304,7 @@ npm run format   # prettier --write "**/*.{ts,tsx,md}"
 
 ## Services
 
-### Frontend — `apps/frontend`
+### Frontend (`apps/frontend`)
 
 The primary user interface — a high-performance collaborative IDE built with React and Vite.
 
@@ -359,7 +352,7 @@ graph TD
 
 ---
 
-### Express Server — `apps/express-server`
+### Express Server (`apps/express-server`)
 
 A stateless REST API that acts as the producer in the code execution pipeline.
 
@@ -393,7 +386,7 @@ Content-Type: application/json
 
 ---
 
-### WebSocket Server — `apps/websocket-server`
+### WebSocket Server (`apps/websocket-server`)
 
 The real-time backbone of SYNC-CODE. Manages room lifecycle, message routing, Redis Pub/Sub relay, and AI streaming.
 
@@ -449,7 +442,7 @@ sequenceDiagram
 
 ---
 
-### Worker — `apps/worker`
+### Worker (`apps/worker`)
 
 A background service that consumes code execution jobs from Redis and runs them in ephemeral Docker containers.
 
@@ -460,22 +453,22 @@ stateDiagram-v2
     [*] --> Idle: main() starts
     Idle --> Fetching: brPop("problems", 0)
     Fetching --> Staging: JSON.parse(job)
-    Staging --> Executing: Write files to ./tmp/user-{timestamp}/
+    Staging --> Executing: Write files to /tmp/user-{timestamp}/
     state Executing {
         direction LR
-        DockerRun --> WaitTimeout: exec() with 90s timeout
+        DockerRun --> WaitTimeout: exec() with 20s timeout
     }
-    Executing --> Publishing: Process exits or times out (90s)
+    Executing --> Publishing: Process exits or times out
     Publishing --> Cleanup: pubClient.publish(roomId, result)
-    Cleanup --> Idle: fs.rm(codeDir, { recursive: true })
+    Cleanup --> Idle: fs.rm(codeDir, recursive)
 ```
 
 **Supported Languages & Docker Images:**
 
 | Language | Docker Image | Execution |
 |---|---|---|
-| JavaScript | `node:18-alpine` | `node userCode.js input.txt` |
-| Python | `python:3.9-alpine` | `python userCode.py input.txt` |
+| JavaScript | `node:18-alpine` | `node userCode.js < input.txt` |
+| Python | `python:3.9-alpine` | `python userCode.py < input.txt` |
 | C++ | `gcc:latest` | `sh -c "g++ userCode.cpp -o a.out && ./a.out < input.txt"` |
 | Go | `golang:1.20-alpine` | `sh -c "go run userCode.go < input.txt"` |
 
@@ -487,7 +480,7 @@ stateDiagram-v2
 | `--memory` | `512m` | Prevent OOM attacks on host |
 | `--cpus` | `0.5` | Prevent infinite loops from consuming host CPU |
 | `--rm` | Auto-remove | Clean up container filesystem after execution |
-| `timeout` | `90000ms` | Kill process if it exceeds 90 seconds |
+| `timeout` | `20000ms` | Kill process if it exceeds 20 seconds |
 
 **Environment Variables:**
 
@@ -544,10 +537,8 @@ sequenceDiagram
     U2->>U2: addIceCandidate(candidate)
 ```
 
-> **Note on roles:** The "polite" peer is whichever user has the **lexicographically greater** `userId` string compared to the remote peer (`userId > senderId`). Roles are not fixed — they depend on runtime userId values.
-
-- **Perfect Negotiation** — Glare (simultaneous offers) is resolved by assigning a "polite" role. The peer whose `userId` string is **lexicographically greater** than the sender's is polite. The polite peer rolls back its own offer on collision.
-- **ICE** — Uses two Google public STUN servers (`stun.l.google.com:19302`, `stun1.l.google.com:19302`) for NAT traversal.
+- **Perfect Negotiation** — Glare (simultaneous offers) is resolved by assigning a "polite" role to the peer with the lexicographically higher `userId`. The polite peer rolls back its own offer on collision.
+- **ICE** — Uses Google public STUN servers for NAT traversal.
 - **Track Management** — When `localStream` changes (camera/mic toggle), all active peer connections are updated via `pc.addTrack` / `pc.removeTrack`.
 
 ---
@@ -576,9 +567,11 @@ A shared drawing surface using a **dual-canvas architecture**:
 - **Markdown Rendering** — Messages are rendered with `ReactMarkdown` for rich formatting and syntax-highlighted code blocks.
 - **AI Streaming** — The `ask_ai` message triggers the Gemini handler on the WebSocket server. Each text chunk is published as `chat_ai_chunk` to Redis, relayed to the frontend, and appended to the last AI message in real-time, creating a typing effect.
 - **AI Model** — `gemini-2.5-flash-lite` via `@google/generative-ai` SDK.
-- **Context-Aware** — The editor's right-click context menu exposes three AI actions: **"Explain this logic"**, **"Find Bugs"**, and **"Optimize Code"**. Each captures the highlighted selection and current language, sending them to Gemini as context.
+- **Context-Aware** — The editor's context menu can trigger AI actions (e.g., "Explain Code", "Fix Errors") with the selected code and language automatically included in the prompt.
 
 ---
+
+
 
 ## Infrastructure & Deployment
 
@@ -653,7 +646,13 @@ graph TD
 
 **Worker (Specialized Image):**
 
-The Worker image is built on `node:18`. Unlike the other services, it does **not** pre-install language runtimes. Instead, it pulls Docker images on-demand at runtime (`node:18-alpine`, `python:3.9-alpine`, `gcc:latest`, `golang:1.20-alpine`) using the host Docker socket. It also creates a non-root user `myuser` and transfers ownership of `/usr/src/app` to it before startup, providing defense-in-depth against privilege escalation.
+The Worker image is built on `node:18` and pre-installs all language runtimes needed to spawn execution containers:
+
+- `python3`, `python3-pip`
+- `build-essential` (GCC for C++)
+- `golang`
+
+It also creates a non-root user `myuser` and transfers ownership of `/usr/src/app` to it before startup, providing defense-in-depth against privilege escalation.
 
 **Docker Compose (all backend services together):**
 
@@ -701,7 +700,7 @@ services:
 
 ---
 
-### Part 1 — Deploying Backend on AWS EC2
+### Part 1: Deploying the Backend on AWS EC2
 
 #### Step 1.1 — Launch an AWS EC2 Instance
 
@@ -768,7 +767,7 @@ Navigate to your EC2 instance → **Security** tab → click the Security Group 
 
 ---
 
-### Part 2 — Deploying Frontend on Vercel
+### Part 2: Deploying the Frontend on Vercel
 
 #### Step 2.1 — Set Production Environment Variables
 
@@ -802,17 +801,10 @@ VITE_YJS_WEBSOCKET_URL=ws://<EC2_PUBLIC_IP>:5001
    - `POST /submit` reaches your EC2 Express API
    - WebSocket connection establishes to your EC2 WebSocket server
 
+
 ---
 
 ## Environment Variables
-
-### `apps/frontend`
-
-```env
-VITE_PRIMARY_BACKEND_URL=http://localhost:3000
-VITE_WS_URL=ws://localhost:5000
-VITE_YJS_WEBSOCKET_URL=ws://localhost:5001
-```
 
 ### `apps/express-server`
 
@@ -858,7 +850,7 @@ npm install
 
 ### Development
 
-Create `.env` files in each service directory (see [Environment Variables](#-environment-variables)), then:
+Create `.env` files in each service directory (see [Environment Variables](#environment-variables)), then:
 
 ```bash
 # Start all services in parallel (Turborepo)
@@ -901,7 +893,7 @@ Monaco Editor is also enhanced with custom code snippets for JavaScript, Python,
 | Network access from user code | `--network none` on execution containers |
 | Memory exhaustion (OOM) | `--memory="512m"` per container |
 | CPU exhaustion (infinite loops) | `--cpus="0.5"` per container |
-| Long-running processes | 90-second `exec` timeout |
+| Long-running processes | 20-second `exec` timeout |
 | Container filesystem persistence | `--rm` flag auto-removes containers |
 | Disk exhaustion | `fs.rm(codeDir, { recursive: true })` after every execution |
 | Privilege escalation in Worker | Worker runs as non-root `myuser` |
@@ -924,7 +916,5 @@ Monaco Editor is also enhanced with custom code snippets for JavaScript, Python,
 | **`problems` list** | The Redis List key used as the FIFO job queue between the Express server (producer) and Worker (consumer). |
 | **`room:{roomId}:users`** | Redis Hash key storing `userId → name` mappings for distributed presence tracking. |
 | **Gemini AI** | Google's `gemini-2.5-flash-lite` model used as the AI Pair Programmer, accessed via `@google/generative-ai`. |
-
----
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/harshitzofficial/SYNC-CODE)
