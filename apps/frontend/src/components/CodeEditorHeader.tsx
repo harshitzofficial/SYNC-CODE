@@ -1,6 +1,6 @@
 "use client"
 
-import { Code2, Play, Loader2, PenTool, Layout } from "lucide-react"
+import { Code2, Play, Loader2, PenTool, Layout, Circle, Share2, Check, Users } from "lucide-react"
 import { LanguageDropdown } from "./LanguageDropDown"
 import { Button } from "./ui/button"
 
@@ -12,6 +12,9 @@ interface CodeEditorHeaderProps {
   currentButtonState: string
   activeView: 'editor' | 'whiteboard'
   onViewChange: (view: 'editor' | 'whiteboard') => void
+  onInvite: () => void
+  inviteCopied: boolean
+  connectedUsersCount: number
 }
 
 export const CodeEditorHeader = ({
@@ -22,55 +25,70 @@ export const CodeEditorHeader = ({
   currentButtonState,
   activeView,
   onViewChange,
+  onInvite,
+  inviteCopied,
+  connectedUsersCount,
 }: CodeEditorHeaderProps) => {
   return (
     <div
-      className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 p-6 bg-white/5 backdrop-blur-lg border border-white/20 rounded-xl shadow-xl"
+      className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/[.1] bg-[#111a2b]/85 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl sm:flex-row sm:items-center sm:px-5"
       style={{ position: "relative", zIndex: 10 }}
     >
       <div className="flex items-center justify-center gap-3">
-        <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-          <Code2 className="w-6 h-6 text-white" />
+        <div className="rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 p-2.5 shadow-lg shadow-cyan-950/30">
+          <Code2 className="h-5 w-5 text-slate-950" />
         </div>
-        <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-          CodeSync
-        </div>
+        <div><div className="text-lg font-extrabold tracking-tight text-white">CodeSync</div><div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300"><Circle size={7} fill="currentColor" /> Live workspace</div></div>
       </div>
 
-      <div className="flex bg-gray-900/60 p-1 rounded-lg shrink-0 shadow-lg mx-auto sm:mx-4">
-          <button 
-              onClick={() => onViewChange('editor')} 
-              className={`flex items-center gap-2 py-1.5 px-4 text-sm font-medium rounded-md transition-all duration-200 ${activeView === 'editor' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
-          >
-              <Layout size={16} />
-              Editor
-          </button>
-          <button 
-              onClick={() => onViewChange('whiteboard')} 
-              className={`flex items-center gap-2 py-1.5 px-4 text-sm font-medium rounded-md transition-all duration-200 ${activeView === 'whiteboard' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
-          >
-              <PenTool size={16} />
-              Whiteboard
-          </button>
+      <div className="mx-auto flex shrink-0 rounded-xl border border-white/[.07] bg-[#080e1b]/70 p-1 sm:mx-4">
+        <button
+          onClick={() => onViewChange('editor')}
+          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${activeView === 'editor' ? 'bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-950/40' : 'text-slate-500 hover:bg-white/[.07] hover:text-white'}`}
+        >
+          <Layout size={16} />
+          Editor
+        </button>
+        <button
+          onClick={() => onViewChange('whiteboard')}
+          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${activeView === 'whiteboard' ? 'bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-950/40' : 'text-slate-500 hover:bg-white/[.07] hover:text-white'}`}
+        >
+          <PenTool size={16} />
+          Whiteboard
+        </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row items-center">
+        <div className="flex items-center gap-2 rounded-xl border border-white/[.12] bg-[#080e1b]/70 px-3 py-2 text-sm font-bold text-slate-300 mr-2 shadow-inner">
+          <Users size={16} className="text-cyan-400" />
+          <span>{connectedUsersCount}</span>
+        </div>
+
         {activeView === 'editor' && (
           <LanguageDropdown value={language} onChange={onLanguageChange} />
         )}
+
+        <Button
+          onClick={onInvite}
+          type="button"
+          variant="outline"
+          className="h-10 rounded-xl border-white/[.12] bg-white/[.04] px-4 font-bold text-slate-200 transition hover:border-cyan-300/30 hover:bg-cyan-300/[.08] hover:text-cyan-100"
+        >
+          {inviteCopied ? <Check className="h-4 w-4 text-emerald-300" /> : <Share2 className="h-4 w-4" />}
+          {inviteCopied ? "Link copied" : "Invite"}
+        </Button>
 
         <Button
           onClick={onSubmit}
           disabled={isLoading}
           type="button"
           className={`
-            px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform
-            ${
-              isLoading
-                ? "bg-gray-600 cursor-not-allowed opacity-50"
-                : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 hover:scale-101 shadow-lg hover:shadow-xl"
+            h-10 rounded-xl px-5 font-extrabold transition-all duration-300 transform
+            ${isLoading
+              ? "bg-slate-700 cursor-not-allowed opacity-50"
+              : "bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 hover:from-cyan-300 hover:to-blue-400 hover:-translate-y-0.5 shadow-lg shadow-cyan-950/30"
             }
-            text-white flex items-center gap-2
+            flex items-center gap-2
           `}
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}

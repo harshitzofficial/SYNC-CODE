@@ -1,3 +1,11 @@
+/**
+ * EXPRESS SERVER (Port 3000)
+ * 
+ * This service acts as the standard REST API gateway for the application.
+ * Its primary responsibility in this architecture is to receive code execution 
+ * requests from the frontend and push them onto a Redis List ("problems").
+ * The background Worker service will then pop those jobs off the queue and execute them.
+ */
 import express from "express";
 import { createClient } from "redis";
 import cors from 'cors'
@@ -10,6 +18,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Initialize Redis client to push code execution jobs to the worker queue
 const redisClient = createClient({
     url: process.env.REDIS_URL
 });
@@ -20,6 +29,7 @@ app.get('/', (req, res) => {
     res.send('Hello World!');
 })
 
+// Endpoint called by the frontend when a user clicks "Run Code"
 app.post('/submit', async (req, res) => {
     const { code, language, roomId,input } = req.body;
 
@@ -27,6 +37,7 @@ app.post('/submit', async (req, res) => {
     console.log(`Received submission from user ${roomId}`);
 
     try {
+        // Push the code execution job onto the "problems" Redis List
         await redisClient.lPush("problems", JSON.stringify({ code, language, roomId, submissionId, input }));
 
         console.log(

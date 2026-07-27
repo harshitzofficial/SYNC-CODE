@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build" : "tsc -p .",
+    "build": "tsc -p .",
     "start": "node dist/index.js",
-    "dev": "tsc && node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "test": "jest --config jest.config.ts"
   },
   "keywords": [],
   "author": "",
@@ -18,7 +18,9 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.15.29"
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.15.29",
+    "ts-jest": "^29.4.11"
   },
   "description": ""
 }

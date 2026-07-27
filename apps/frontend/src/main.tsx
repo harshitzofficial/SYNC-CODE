@@ -8,8 +8,7 @@ import { Toaster } from 'sonner' //This comes from sonner, a popular library for
 //The ! symbol: This is a TypeScript "non-null assertion." It tells TypeScript, "I promise this 'root' element exists in the HTML, so don't worry about it being null."
 createRoot(document.getElementById('root')!).render(
   <RecoilRoot>
-    <Toaster />
+    <Toaster closeButton position="top-right" richColors />
       <App />
   </RecoilRoot>
 )
-

@@ -525,8 +525,6 @@ When the Monaco editor mounts (`handleEditorDidMount`):
 
 Implemented in the `useWebRTC` hook with a **mesh topology** — every user maintains a direct `RTCPeerConnection` with every other user.
 
-
-
 ```mermaid
 sequenceDiagram
     participant U1 as User A (Impolite)
@@ -569,8 +567,6 @@ sequenceDiagram
     Note over U1,U2: DTLS handshake
     Note over U1,U2: Secure SRTP audio/video flows
 ```
-
-
 
 > **Note on roles:** The "polite" peer is whichever user has the **lexicographically greater** `userId` string compared to the remote peer (`userId > senderId`). Roles are not fixed — they depend on runtime userId values.
 

@@ -60,6 +60,7 @@ export default function Whiteboard({ roomId, username, socket }: WhiteboardProps
     function drawStroke(ctx: CanvasRenderingContext2D, stroke: Stroke) {
         if (!stroke.points || stroke.points.length < 2) return;
         ctx.beginPath();
+        // The Eraser works by drawing over existing strokes using the canvas background color (#0b1020)
         ctx.strokeStyle = stroke.tool === TOOLS.ERASER ? "#0b1020" : getUserColor(stroke.author);
         ctx.lineWidth = stroke.lineWidth;
         ctx.lineCap = "round";

@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug C/C++",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "c:\\Users\\tanishka singh\\Desktop\\PROJECTS\\SYNC-CODE-main\\ll_debug.exe",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "c:\\Users\\tanishka singh\\Desktop\\PROJECTS\\SYNC-CODE-main",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${env:PATH};C:/ProgramData/mingw64/mingw64/bin;C:/mingw64/bin;C:/msys64/mingw64/bin"
+                },
+                {
+                    "name": "MINGW_HOME",
+                    "value": "C:/ProgramData/mingw64/mingw64"
+                }
+            ],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "",
+            "internalConsoleOptions": "openOnSessionStart"
+        }
+    ]
+}

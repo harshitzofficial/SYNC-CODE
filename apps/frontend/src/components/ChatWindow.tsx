@@ -21,6 +21,7 @@ interface ChatWindowProps {
 export const ChatWindow = ({ messages, localUserId, onSendMessage }: ChatWindowProps) => {
     const [inputValue, setInputValue] = useState("");
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
     const endOfMessagesRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -124,9 +125,17 @@ export const ChatWindow = ({ messages, localUserId, onSendMessage }: ChatWindowP
                                     }`}
                                 >
                                     {msg.imageUrl && (
-                                        <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer">
-                                            <img src={msg.imageUrl} alt="attached" className="max-w-full h-auto rounded-md max-h-48 object-contain cursor-pointer" />
-                                        </a>
+                                        <div className="relative group select-none">
+                                            <img 
+                                                src={msg.imageUrl} 
+                                                alt="attached" 
+                                                className="max-w-full h-auto rounded-md max-h-48 object-contain cursor-zoom-in transition-all duration-200 hover:scale-[1.02] border border-transparent hover:border-white/10" 
+                                                onDoubleClick={() => setExpandedImageUrl(msg.imageUrl || null)}
+                                            />
+                                            <div className="absolute bottom-1 right-1 bg-black/75 backdrop-blur-sm text-[10px] text-gray-300 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none select-none">
+                                                Double-click to expand
+                                            </div>
+                                        </div>
                                     )}
                                     {msg.text && (
                                         isAi ? (
@@ -211,6 +220,45 @@ export const ChatWindow = ({ messages, localUserId, onSendMessage }: ChatWindowP
                     </button>
                 </form>
             </div>
+
+            {/* Expanded Image Modal overlay */}
+            {expandedImageUrl && (
+                <div 
+                    className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-fade-in"
+                    onClick={() => setExpandedImageUrl(null)}
+                >
+                    <style>{`
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes scaleIn {
+                            from { transform: scale(0.95); opacity: 0; }
+                            to { transform: scale(1); opacity: 1; }
+                        }
+                        .animate-fade-in {
+                            animation: fadeIn 0.2s ease-out forwards;
+                        }
+                        .animate-scale-in {
+                            animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                        }
+                    `}</style>
+                    {/* Close Button */}
+                    <button 
+                        onClick={() => setExpandedImageUrl(null)}
+                        className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-50 border border-white/10"
+                    >
+                        <X size={24} />
+                    </button>
+                    {/* Expanded Image */}
+                    <img 
+                        src={expandedImageUrl} 
+                        alt="expanded view" 
+                        className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-scale-in"
+                        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking the image itself
+                    />
+                </div>
+            )}
         </div>
     );
 };

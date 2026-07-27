@@ -1,0 +1,40 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+      
+  express-server:
+    build:
+      context: ./apps/express-server
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PORT=3000
+    depends_on:
+      - redis
+      
+  websocket-server:
+    build:
+      context: ./apps/websocket-server
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PORT=5000
+      - GEMINI_API_KEY=your_gemini_api_key_here
+    depends_on:
+      - redis
+      
+  worker:
+    build:
+      context: ./apps/worker
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

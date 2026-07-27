@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y python3 python3-pip && \
 RUN apt-get update && apt-get install -y build-essential && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Go 
+# Install Go
 RUN apt-get update && apt-get install -y golang && \
     rm -rf /var/lib/apt/lists/*
 

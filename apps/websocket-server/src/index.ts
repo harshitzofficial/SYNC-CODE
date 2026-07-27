@@ -1,3 +1,15 @@
+/**
+ * WEBSOCKET SERVER (Ports 5000 & 5001)
+ * 
+ * This service is the real-time heartbeat of the application. It handles:
+ * 1. WebRTC Signaling (Offers, Answers, ICE candidates) for P2P video/audio.
+ * 2. Real-time Chat and Whiteboard stroke synchronization.
+ * 3. AI Pair Programmer streaming responses (via Gemini API).
+ * 4. Monaco Editor CRDT synchronization (via a dedicated Yjs server on port 5001).
+ * 
+ * It is horizontally scalable because it uses Redis Pub/Sub to instantly 
+ * broadcast messages across all active server instances.
+ */
 import http from "http"
 import { WebSocketServer } from "ws"
 import { createClient } from "redis"
@@ -11,9 +23,11 @@ dotenv.config();
 
 const server = http.createServer();
 const wss = new WebSocketServer({ server });
+// Subscriber client used to listen to room-specific messages across server instances
 const pubSubClient = createClient({
     url: process.env.REDIS_URL
 });
+// Publisher client used to broadcast messages and maintain the global user roster in Redis Hashes
 const publisherClient = createClient({
     url: process.env.REDIS_URL
 });
@@ -31,7 +45,9 @@ async function start_process() {
         console.log("Redis PubSub Client Error", err);
     })
 
+    // Handle new WebSocket connections from clients
     wss.on("connection", async (ws, req) => {
+        try {
         console.log("Connection Established");
 
         const queryParams = new URLSearchParams(req.url?.split("?")[1]);
@@ -67,6 +83,7 @@ async function start_process() {
             )
         }
 
+        if (!rooms[roomId]) rooms[roomId] = [];
         rooms[roomId].push({ userId, ws, name });
         console.log("all room", rooms);
 
@@ -83,7 +100,8 @@ async function start_process() {
             data: { type: "users", users: allUsers }
         }));
 
-        if (rooms[roomId].length === 1) {
+        // If this is the first user in the room on this server instance, subscribe to the Redis Pub/Sub channel
+        if (rooms[roomId] && rooms[roomId].length === 1) {
             pubSubClient.subscribe(roomId, (message) => {
                 try {
                     const parsed = JSON.parse(message);
@@ -106,7 +124,7 @@ async function start_process() {
                         user.ws.send(JSON.stringify({ type: "output", message: message }));
                     });
                 }
-            });
+            }).catch(console.error);
         }
 
         ws.on('message', (message) => {
@@ -118,118 +136,6 @@ async function start_process() {
                 return;
             }
 
-
-            // if (data.type === "requestToGetUsers") {
-            //     const users = rooms[roomId].map((user: any) => ({
-            //         id: user.userId,
-            //         name: user.name,
-            //     }));
-
-            //     console.log("Request recived");
-
-            //     rooms[roomId].forEach((user: any) => {
-            //         user.ws.send(JSON.stringify({ type: "users", users: users }));
-            //     });
-            // }
-
-            // if (data.type === 'requestForAllData') {
-            //     const otherUser = rooms[roomId].find(
-            //         (user: any) => user.userId !== userId
-            //     );
-
-            //     if (otherUser) {
-            //         console.log("sending request to", otherUser.name);
-            //         otherUser.ws.send(
-            //             JSON.stringify({
-            //                 type: "requestForAllData",
-            //                 userId: userId,
-            //             })
-            //         );
-            //     }
-            // }
-
-            // if (data.type === "code") {
-            //     rooms[roomId].forEach((user: any) => {
-            //         if (user.userId != userId) {
-            //             user.ws.send(JSON.stringify({ type: "code", code: data.code }));
-            //         }
-            //     });
-            // }
-
-            // if (data.type === "input") {
-            //     rooms[roomId].forEach((user: any) => {
-            //         if (user.userId != userId) {
-            //             user.ws.send(JSON.stringify({ type: "input", input: data.input }));
-            //         }
-            //     });
-            // }
-
-            // if (data.type === "language") {
-            //     rooms[roomId].forEach((user: any) => {
-            //         if (user.userId != userId) {
-            //             user.ws.send(
-            //                 JSON.stringify({ type: "language", language: data.language })
-            //             );
-            //         }
-            //     });
-            // }
-
-            // if (data.type === "submitBtnStatus") {
-            //     rooms[roomId].forEach((user: any) => {
-            //         if (user.userId != userId) {
-            //             user.ws.send(
-            //                 JSON.stringify({
-            //                     type: "submitBtnStatus",
-            //                     value: data.value,
-            //                     isLoading: data.isLoading,
-            //                 })
-            //             );
-            //         }
-            //     });
-            // }
-
-            // // handle user added
-            // if (data.type === "users") {
-            //     rooms[roomId].forEach((user: any) => {
-            //         if (user.userId != userId) {
-            //             user.ws.send(JSON.stringify({ type: "users", users: data.users }));
-            //         }
-            //     });
-            // }
-
-            // if (data.type === "allData") {
-            //     rooms[roomId].forEach((user: any) => {
-            //         if (user.userId === data.userId) {
-            //             console.log("sending all data to", user.name, "and data is", data);
-
-            //             user.ws.send(
-            //                 JSON.stringify({
-            //                     type: "allData",
-            //                     code: data.code,
-            //                     input: data.input,
-            //                     language: data.language,
-            //                     currentButtonState: data.currentButtonState,
-            //                     isLoading: data.isLoading,
-            //                 })
-            //             );
-            //         }
-            //     });
-            // }
-
-            // if (data.type === "cursorPosition") {
-            //     rooms[roomId].forEach((user: any) => {
-            //         if (user.userId != userId) {
-            //             user.ws.send(
-            //                 JSON.stringify({
-            //                     type: "cursorPosition",
-            //                     cursorPosition: data.cursorPosition,
-            //                     userId: userId,
-            //                 })
-            //             );
-            //         }
-            //     });
-            // }
-
             const handler = requestRouter[data.type];
             if (handler) {
                 handler(data, { userId, roomId, rooms, publisherClient });
@@ -239,31 +145,40 @@ async function start_process() {
         });
 
         ws.on("close", async () => {
-            rooms[roomId] = rooms[roomId].filter(
-                (user: any) => user.userId !== userId
-            );
+            try {
+                if (!rooms[roomId]) return;
 
-            if (userId) {
-                await publisherClient.hDel(`room:${roomId}:users`, userId);
+                rooms[roomId] = rooms[roomId].filter(
+                    (user: any) => user.userId !== userId
+                );
+
+                if (userId) {
+                    await publisherClient.hDel(`room:${roomId}:users`, userId);
+                }
+
+                const allUsersRaw = await publisherClient.hGetAll(`room:${roomId}:users`);
+                const allUsers = Object.keys(allUsersRaw).map(id => ({ id, name: allUsersRaw[id] }));
+
+                await publisherClient.publish(roomId, JSON.stringify({
+                    type: "broadcast",
+                    excludeUserId: null,
+                    data: { type: "users", users: allUsers }
+                }));
+
+                if (rooms[roomId] && rooms[roomId].length === 0) {
+                    delete rooms[roomId];
+                    pubSubClient.unsubscribe(roomId).catch(console.error);
+                }
+
+                console.log("all room", rooms);
+            } catch (err) {
+                console.error("Error in ws close handler:", err);
             }
-
-            const allUsersRaw = await publisherClient.hGetAll(`room:${roomId}:users`);
-            const allUsers = Object.keys(allUsersRaw).map(id => ({ id, name: allUsersRaw[id] }));
-
-            await publisherClient.publish(roomId, JSON.stringify({
-                type: "broadcast",
-                excludeUserId: null,
-                data: { type: "users", users: allUsers }
-            }));
-
-            if (rooms[roomId].length === 0) {
-                delete rooms[roomId];
-                pubSubClient.unsubscribe(roomId);
-            }
-
-            console.log("all room", rooms);
         })
-
+        } catch (err) {
+            console.error("Error in ws connection handler:", err);
+            ws.close();
+        }
     })
 
     wss.on("listening", () => {
@@ -277,6 +192,7 @@ async function start_process() {
         console.log(`web socket server started on ${WS_PORT}`, server.address());
     });
 
+    // Dedicated Yjs WebSocket server for real-time CRDT code synchronization
     const yjsServer = http.createServer();
     const yjsWss = new WebSocketServer({ server: yjsServer });
     yjsWss.on("connection", setupWSConnection);

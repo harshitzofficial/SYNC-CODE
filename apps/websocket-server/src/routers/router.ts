@@ -1,3 +1,14 @@
+/**
+ * WEBSOCKET EVENT ROUTER
+ * 
+ * This module acts as the switchboard for all incoming WebSocket messages.
+ * Instead of handling the logic locally (which would break in a multi-server setup),
+ * it takes incoming events (like chat, whiteboard, WebRTC signaling) and publishes 
+ * them to the Redis Pub/Sub channel for the specific room.
+ * 
+ * This ensures that regardless of which server instance a user is connected to,
+ * their actions are broadcasted to everyone else in the room.
+ */
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
 
@@ -129,6 +140,9 @@ const requestRouter: Record<string, MessageHandler> = {
     },
 
     webrtc_ice_candidate: (data, { userId, roomId, rooms, publisherClient }) => {
+        // [TESTING] Log the ICE candidate to see the IP exchange in the terminal
+        console.log(`[WebRTC] ICE Candidate (IP Exchange) from ${userId} to ${data.targetUserId}:`, data.candidate?.candidate);
+
         publisherClient.publish(roomId, JSON.stringify({
             type: "direct", targetUserId: data.targetUserId, data: {
                 type: "webrtc_ice_candidate",
@@ -192,7 +206,7 @@ const requestRouter: Record<string, MessageHandler> = {
         }
 
         try {
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
             const prompt = `You are a legendary, expert Senior Software Engineer and AI Pair Programmer. 
 Respond to the following request precisely, concisely, and with accurate markdown code snippets.
 

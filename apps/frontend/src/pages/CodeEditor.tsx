@@ -35,6 +35,7 @@ export const CodeEditor = () => {
     const [activeTab, setActiveTab] = useState<'users' | 'chat' | 'io'>('users');
     const [activeView, setActiveView] = useState<'editor' | 'whiteboard'>('editor');
     const [isChatZoomed, setIsChatZoomed] = useState(false);
+    const [inviteCopied, setInviteCopied] = useState(false);
     const navigate = useNavigate();
 
     const handleEditorWillMount = (monaco: any) => {
@@ -235,6 +236,20 @@ export const CodeEditor = () => {
 
     }
 
+    const handleInvite = async () => {
+        const inviteLink = `${window.location.origin}/${user.roomId}`;
+        try {
+            await navigator.clipboard.writeText(inviteLink);
+            setInviteCopied(true);
+            setActiveTab('users');
+            toast.success("Invite link copied", { description: "Share it with teammates to join this room." });
+            setTimeout(() => setInviteCopied(false), 2000);
+        } catch {
+            toast.error("Couldn't copy the invite link", { description: "Use the room code in the invite panel instead." });
+            setActiveTab('users');
+        }
+    };
+
     const handleInputChange = (e: any) => {
         setInput(e.target.value);
         socket?.send(
@@ -381,8 +396,9 @@ export const CodeEditor = () => {
     }
 
     return (
-        <div className="w-full h-full min-h-screen  min-w-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white">
-            <div className="container mx-auto p-4 max-w-7xl">
+        <div className="min-h-screen w-full bg-[#080c16] text-white">
+            <div className="premium-grid fixed inset-0 pointer-events-none opacity-30" />
+            <div className="relative mx-auto max-w-[1600px] p-3 sm:p-5">
                 <CodeEditorHeader
                     language={language}
                     onLanguageChange={handleLanguageChange}
@@ -391,14 +407,17 @@ export const CodeEditor = () => {
                     currentButtonState={currentButtonState}
                     activeView={activeView}
                     onViewChange={setActiveView}
+                    onInvite={handleInvite}
+                    inviteCopied={inviteCopied}
+                    connectedUsersCount={connectedUsers.length}
                 />
 
-                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 h-[calc(100vh-160px)]">
-                    {/* Code Editor / Whiteboard - Takes 75% space on desktop */}
+                <div className="grid h-[calc(100vh-130px)] grid-cols-1 gap-4 xl:grid-cols-4">
+                    {/* Keep the whiteboard mounted while hidden so it continues receiving live strokes. */}
                     <div className="xl:col-span-3 order-2 xl:order-1 h-full min-h-0">
-                        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl overflow-hidden shadow-xl h-full">
-                            {activeView === 'editor' ? (
-                                <div className="flex flex-grow h-full py-4">
+                        <div className="h-full overflow-hidden rounded-2xl border border-white/[.1] bg-[#111a2b]/85 shadow-2xl shadow-black/20 backdrop-blur-xl">
+                            <div className={`h-full ${activeView === 'editor' ? 'flex' : 'hidden'}`}>
+                                <div className="flex h-full flex-grow py-3">
                                     <MonacoEditor
                                     options={{
                                         smoothScrolling: true,
@@ -416,31 +435,32 @@ export const CodeEditor = () => {
                                     height="100%"
                                 />
                                 </div>
-                            ) : (
+                            </div>
+                            <div className={`h-full ${activeView === 'whiteboard' ? 'block' : 'hidden'}`}>
                                 <Whiteboard roomId={user.roomId} username={user.name || "User"} socket={socket} />
-                            )}
+                            </div>
                         </div>
                     </div>
 
                     {/* Unified Right Sidebar: Users, Chat, I/O */}
                     <div className="xl:col-span-1 order-1 xl:order-2 h-full min-h-0 flex flex-col gap-4">
                         {/* Tabs Navigation */}
-                        <div className="flex bg-gray-900/60 p-1 rounded-lg shrink-0 shadow-lg">
+                        <div className="flex shrink-0 rounded-xl border border-white/[.07] bg-[#111a2b]/85 p-1 shadow-lg backdrop-blur-xl">
                             <button 
                                 onClick={() => setActiveTab('users')} 
-                                className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${activeTab === 'users' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+                                className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-200 ${activeTab === 'users' ? 'bg-cyan-400 text-slate-950 shadow' : 'text-slate-500 hover:bg-white/[.07] hover:text-white'}`}
                             >
                                 Users & Info
                             </button>
                             <button 
                                 onClick={() => setActiveTab('chat')} 
-                                className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${activeTab === 'chat' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+                                className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-200 ${activeTab === 'chat' ? 'bg-cyan-400 text-slate-950 shadow' : 'text-slate-500 hover:bg-white/[.07] hover:text-white'}`}
                             >
                                 Group Chat
                             </button>
                             <button 
                                 onClick={() => setActiveTab('io')} 
-                                className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${activeTab === 'io' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+                                className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-200 ${activeTab === 'io' ? 'bg-cyan-400 text-slate-950 shadow' : 'text-slate-500 hover:bg-white/[.07] hover:text-white'}`}
                             >
                                 I/O Output
                             </button>

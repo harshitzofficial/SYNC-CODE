@@ -1,6 +1,5 @@
-import { Users, Copy, Check, Mic, MicOff, Camera, CameraOff, Video as VideoIcon, X } from "lucide-react";
+import { Users, Mic, MicOff, Camera, CameraOff, Video as VideoIcon, X } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { toast } from "sonner";
 
 interface User {
     id: string;
@@ -52,20 +51,8 @@ export const UserList = ({
     users, roomId, localUserId, localUserName, localStream, remoteStreams, 
     micEnabled, videoEnabled, toggleMic, toggleVideo 
 }: UserListProps) => {
-    const [copied, setCopied] = useState(false);
     const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
     const [zoomedStream, setZoomedStream] = useState<{ stream: MediaStream | null, label: string } | null>(null);
-
-    const copyInviteCode = async () => {
-        try {
-            await navigator.clipboard.writeText(roomId);
-            setCopied(true);
-            toast.message("Copied!", { description: "Invitation code copied to clipboard" });
-            setTimeout(() => setCopied(false), 2000);
-        } catch (err) {
-            toast.error("Error", { description: "Failed to copy invitation code" });
-        }
-    };
 
     const generateUserColor = (name: string) => {
         const colors = [
@@ -91,7 +78,7 @@ export const UserList = ({
         <>
             <div className="space-y-4">
                 {/* Users Section */}
-                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 shadow-xl">
+                <div className="rounded-2xl border border-white/[.1] bg-[#111a2b]/85 p-4 shadow-xl shadow-black/15 backdrop-blur-xl">
                     <div className="flex items-center gap-2 mb-4">
                         <Users className="w-5 h-5 text-blue-400" />
                         <h3 className="text-lg font-semibold text-white">
@@ -167,21 +154,13 @@ export const UserList = ({
                 </div>
 
                 {/* Invitation Code Section */}
-                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 shadow-xl">
-                    <h3 className="text-lg font-semibold text-white mb-3">Room Code</h3>
-                    <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-800/50 border border-gray-600 rounded-lg p-3">
-                            <code className="text-blue-300 font-mono text-sm break-all">
+                <div className="rounded-2xl border border-white/[.1] bg-[#111a2b]/85 p-4 shadow-xl shadow-black/15 backdrop-blur-xl">
+                    <div className="mb-3 flex items-center justify-between"><div><h3 className="text-sm font-extrabold text-white">Room details</h3><p className="mt-0.5 text-[11px] text-slate-500">Use the header Invite button to share this room.</p></div><span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-bold text-emerald-300">LIVE</span></div>
+                    <div className="rounded-xl border border-white/[.08] bg-[#080e1b]/85 p-3">
+                            <code className="font-mono-app text-sm break-all text-cyan-200">
                                 {roomId || "Loading..."}
                             </code>
-                        </div>
-                        <button onClick={copyInviteCode} className="p-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 group" title="Copy invitation code">
-                            {copied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />}
-                        </button>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2">
-                        Share this code with others to join the session
-                    </p>
                 </div>
             </div>
 
