@@ -4,7 +4,6 @@
 
 **Live Demo:** [https://sync-code-express-server.vercel.app/](https://sync-code-express-server.vercel.app/)
 <img width="1727" height="1017" alt="image" src="https://github.com/user-attachments/assets/dda4d06f-4125-4b54-9ce7-f199bb89e0cc" />
-<img width="1310" height="852" alt="image" src="https://github.com/user-attachments/assets/0c722787-d176-4882-b045-170ccee3c438" />
 
 
 
