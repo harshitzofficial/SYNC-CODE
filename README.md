@@ -3,16 +3,20 @@
 > **SYNC-CODE** is a real-time collaborative coding platform featuring a multi-language code editor, interactive whiteboard, WebRTC-based audio/video chat, and integrated AI pair programming.
 
 **Live Demo:** [https://sync-code-express-server.vercel.app/](https://sync-code-express-server.vercel.app/)
+<img width="1727" height="1017" alt="image" src="https://github.com/user-attachments/assets/dda4d06f-4125-4b54-9ce7-f199bb89e0cc" />
+<img width="1310" height="852" alt="image" src="https://github.com/user-attachments/assets/0c722787-d176-4882-b045-170ccee3c438" />
+
+
 
 | Code Editor | Whiteboard |
-|---|---|
-| <img src="https://github.com/user-attachments/assets/bace93c8-fba7-4617-8732-123f3728fd72" alt="Code Editor Screenshot"> | <img src="https://github.com/user-attachments/assets/84739101-4f93-4c34-99e6-548aae88d3a1" alt="Whiteboard Screenshot"> |
+| :---------: | :--------: |
+| <img src="https://github.com/user-attachments/assets/da6986f7-8389-482c-8158-5eed357bd793" alt="Code Editor" width="100%"> | <img src="https://github.com/user-attachments/assets/e3568152-fc42-4cc2-9920-9b2f9f887961" alt="Whiteboard" width="100%"> |
 
-<br>
+---
 
-| | | |
-|---|---|---|
-| <img src="https://github.com/user-attachments/assets/72faa1ba-904f-4383-99da-3f8d490c6e3b" alt="Mobile Screenshot 1" width="250"> | <img src="https://github.com/user-attachments/assets/53ed1ff7-04c7-45df-a836-4f72ed6c6487" alt="Mobile Screenshot 2" width="250"> | <img src="https://github.com/user-attachments/assets/d885c148-a431-4be8-b802-5390ee348a3a" alt="Mobile Screenshot 3" width="250"> |
+|  |  |  |
+| :--: | :--------: | :----: |
+| <img src="https://github.com/user-attachments/assets/dc521a9c-66cf-4c53-b6aa-f677560d7a46" alt="Mobile Home" width="250"> | <img src="https://github.com/user-attachments/assets/03d253b9-c470-49a5-a27d-706230adce00" alt="Mobile Whiteboard" width="250"> | <img src="https://github.com/user-attachments/assets/82986f91-0c6d-4402-bad9-1c04e430cc78" alt="Mobile Editor" width="250"> |
 
 ---
 
